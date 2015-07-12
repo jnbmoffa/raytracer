@@ -24,6 +24,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#define EPSILON 0.0001
+
 class Point2D
 {
 public:
@@ -688,12 +690,16 @@ struct HitInfo
 struct Ray
 {
   Ray() {}
-  Ray(Point3D S, Vector3D D) : Start(S), Direction(D) {}
+  Ray(Point3D S, Vector3D D) : Start(S), Direction(D)
+  {
+    invDirection = Vector3D(1.f/D[0], 1.f/D[1], 1.f/D[2]);
+  }
 
   void Transform(const Matrix4x4& M)
   {
       Direction = M * Direction;
       Start = M * Start;
+      invDirection = Vector3D(1.f/Direction[0], 1.f/Direction[1], 1.f/Direction[2]);
   }
 
   Ray Reflect(const HitInfo& Hit, const double cosi) const
@@ -710,6 +716,12 @@ struct Ray
 
   Point3D Start;
   Vector3D Direction;
+  Vector3D invDirection;
 };
+
+inline bool IsNearly(const double& a, const double& comp)
+{
+  return (a < (comp + EPSILON)) && (a > (comp - EPSILON));
+}
 
 #endif // CS488_ALGEBRA_HPP

@@ -2,21 +2,26 @@
 #define CS488_PRIMITIVE_HPP
 
 #include "algebra.hpp"
-
-#define EPSILON 0.005
+#include "octree.h"
 
 class Primitive {
+protected:
+  BoxF Bounds;
 public:
   virtual ~Primitive();
   virtual bool SimpleTrace(Ray R) { (void)R; return false; }
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M)
     { (void)R; (void)closestDist; (void)M; (void)Hit; return false; }
+  inline BoxF GetBox() { return Bounds; }
 };
 
 class Sphere : public Primitive {
 public:
-  Sphere() : m_center(0, 0, 0), m_radius(1) {}
-  Sphere(const Point3D& C, double R) : m_center(C), m_radius(R) {}
+  Sphere() : m_center(0, 0, 0), m_radius(1) { Bounds = BoxF(-1, 1, 1, -1, 1, -1); }
+  Sphere(const Point3D& C, double R) : m_center(C), m_radius(R) 
+  {
+    Bounds = BoxF(m_center[0]-m_radius, m_center[0]+m_radius, m_center[1]+m_radius, m_center[1]-m_radius, m_center[2]+m_radius, m_center[2]-m_radius); 
+  }
   virtual ~Sphere();
 
   virtual bool SimpleTrace(Ray R);
@@ -28,7 +33,7 @@ private:
 
 class Cube : public Primitive {
 public:
-  Cube() : m_pos(0,0,0), m_size(1.f) {}
+  Cube() : m_pos(0,0,0), m_size(1.f) { Bounds = BoxF(0, 1, 1, 0, 1, 0); }
   virtual ~Cube();
   bool IsInside(Point3D Int, Vector3D Mask);
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M);
@@ -40,12 +45,14 @@ private:
 
 class Cylinder : public Primitive {
 public:
+  Cylinder() { Bounds = BoxF(-1, 1, 1, -1, 1, -1); }
   virtual ~Cylinder();
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M);
 };
 
 class Cone : public Primitive {
 public:
+  Cone () { Bounds = BoxF(-1, 1, 1, 0, 1, -1); }
   virtual ~Cone();
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M);
 };
@@ -58,6 +65,7 @@ public:
     m_trans.translate(Vector3D(pos[0], pos[1], pos[2]));
     m_trans.scale(Vector3D(radius, radius, radius));
     m_invtrans = m_trans.invert();
+    Bounds = BoxF(m_pos[0]-m_radius, m_pos[0]+m_radius, m_pos[1]+m_radius, m_pos[1]-m_radius, m_pos[2]+m_radius, m_pos[2]-m_radius); 
   }
   virtual ~NonhierSphere();
 
@@ -74,8 +82,9 @@ private:
 class NonhierBox : public Primitive {
 public:
   NonhierBox(const Point3D& pos, double size)
-    : m_pos(pos), m_size(size)
+  : m_pos(pos), m_size(size)
   {
+    Bounds = BoxF(pos[0], pos[0]+size, pos[1]+size, pos[1], pos[2]+size, pos[2]);
   }
 
   bool IsInside(Point3D Int, Vector3D Mask);

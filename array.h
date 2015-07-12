@@ -48,7 +48,7 @@ class Array
 	}
 
 public:
-	Array() : MaxNumElements(0), NumElements(0), Contents(nullptr){}
+	Array() : Contents(nullptr), NumElements(0), MaxNumElements(0){}
 
 	~Array()
 	{
@@ -146,6 +146,21 @@ public:
 		}
 	}
 
+	// Removes the item at the given index (order is not preserved)
+	// Does nothing if the index is invalid
+	void RemoveAtSwap(unsigned int Index)
+	{
+		if (IsValidIndex(Index))
+		{
+			if (Index != NumElements-1)	// If removing last, just decrease counter
+			{
+				T last = Contents[NumElements-1];
+				Contents[Index] = last;
+			}
+			NumElements--;
+		}
+	}
+
 	// Returns the item at the given index
 	T& At(int Index) const
 	{
@@ -202,7 +217,7 @@ public:
 		const Array<T>* pArray;
 
 	public:
-		Iterator(const Array<T>* pArray, unsigned int Index = 0) : pArray(pArray), Index(Index) {}
+		Iterator(const Array<T>* pArray, unsigned int Index = 0) : Index(Index), pArray(pArray) {}
 
 		bool operator!= (const Iterator& rhs)
 		{
@@ -222,13 +237,13 @@ public:
 	};
 
 	// For range-based looping
-	Iterator begin()
+	inline Iterator begin()
 	{
 		return Iterator(this, 0);
 	}
 
 	// For range-based looping
-	Iterator end()
+	inline Iterator end()
 	{
 		return Iterator(this, NumElements);
 	}

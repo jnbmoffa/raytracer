@@ -52,7 +52,7 @@ bool SceneNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4&
   return ret;
 }
 
-void SceneNode::FlattenScene(std::list<SceneNode*>& List, Matrix4x4 M)
+void SceneNode::FlattenScene(Array<SceneNode*>& List, Matrix4x4 M)
 {
   for (SceneNode* s : m_children)
   {
@@ -133,9 +133,9 @@ GeometryNode::~GeometryNode()
   if (m_primitive) delete m_primitive;
 }
 
-void GeometryNode::FlattenScene(std::list<SceneNode*>& List, Matrix4x4 M)
+void GeometryNode::FlattenScene(Array<SceneNode*>& List, Matrix4x4 M)
 {
-  List.push_back(new GeometryNode(m_name, m_primitive, m_material, M * m_trans));
+  List.Add(new GeometryNode(m_name, m_primitive, m_material, M * m_trans));
 }
 
 bool GeometryNode::SimpleTrace(Ray R)
@@ -166,4 +166,11 @@ bool GeometryNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4
     return true;
   }
   return false;
+}
+
+BoxF GeometryNode::GetBox()
+{
+  BoxF Bounds = m_primitive->GetBox();
+  Bounds.Transform(m_trans);
+  return Bounds;
 }

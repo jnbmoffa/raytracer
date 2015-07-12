@@ -11,13 +11,16 @@ int main(int argc, char** argv)
   }
 
   int c;
-  while ((c = getopt(argc, argv, ":t:s:")) != -1) {
+  while ((c = getopt(argc, argv, ":t:s:o")) != -1) {
     switch(c) {
     case 't':
       xDiv = yDiv = atoi(optarg);
       break;
     case 's':
       SuperSamples = atoi(optarg);
+      break;
+    case 'o':
+      bUseOctree = true;
       break;
     case ':':
       fprintf(stderr,

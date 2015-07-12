@@ -7,6 +7,7 @@
 atomic_int PROGRESS(0);
 double yDiv = 1.f, xDiv = 1.f;
 int SuperSamples = 1;
+bool bUseOctree = false;
 
 void render(// What to render
                SceneNode* root,
@@ -22,9 +23,6 @@ void render(// What to render
                const std::list<Light*>& lights
                )
 {
-  NodeList List;
-  root->FlattenScene(List);
-
   std::cout.precision(2);
   std::cerr << "Stub: a4_render(" << root << ",\n     "
           << filename << ", " << width << ", " << height << ",\n     "
@@ -37,7 +35,18 @@ void render(// What to render
   }
   std::cerr << "});" << std::endl;
 
-  // Fill in raytracing code here.
+  // Scene setup
+  Array<SceneNode*> List;
+  root->FlattenScene(List);
+  std::cout << "Building octree..." << std::endl;
+  OcTree<SceneNode> Tree(BoxF(-4096.f, 4096.f, 4096.f, -4096.f, 4096.f, -4096.f));
+  for (SceneNode* s : List)
+  {
+    // std::cout << s->m_name << "," << s->GetBox() << std::endl;
+    Tree.Insert(s);
+  }
+
+  // Ray setup
   Vector3D normView = view; normView.normalize();
   Vector3D normUp = -up; normUp.normalize();
   Vector3D normRight = normUp.cross(normView); normRight.normalize();
@@ -64,7 +73,7 @@ void render(// What to render
       int endY = ((y+H2) > height) ? height : y+H2;
       int endX = ((x+W3) > width) ? width : x+W3;
       //std::cout << y << "," << x << "," << H2 << "," << W3 << "," << endY << "," << endX << std::endl;
-      threads[i++] = CreateThread<RenderThread> (List, &img, y, endY, x, endX, pixelWidth, pixelHeight, halfWidth, halfHeight,
+      threads[i++] = CreateThread<RenderThread> (&List, &Tree, &img, y, endY, x, endX, pixelWidth, pixelHeight, halfWidth, halfHeight,
                                                  eye, normRight, normUp, normView, ambient, &lights);
     }
   }
@@ -78,6 +87,7 @@ void render(// What to render
 
   for (int j=0;j<(int)(xDiv*yDiv);j++) threads[j]->Join();
 
+  std::cout << "Creating file..." << std::endl;
   img.savePng(filename);
 }
 
@@ -215,9 +225,21 @@ bool RenderThread::Trace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colou
 {
   double closestDist = 10000000.f; Matrix4x4 M;
   bool bHit = false;
-  for (SceneNode* S : List)
+  Array<SceneNode*> OctList;
+  if (bUseOctree && (*Tree).Trace(OctList, R))
   {
-    if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
+    // std::cout << "List:" <<  List.Num() << std::endl;
+    for (SceneNode* S : OctList)
+    {
+      if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
+    }
+  }
+  else
+  {
+    for (SceneNode* S : *List)
+    {
+      if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
+    }
   }
 
   if (bHit)
@@ -264,9 +286,20 @@ bool RenderThread::IsLightVisible(const Point3D& LightPos, const Point3D& TestLo
   double dist = 1000000.f;
   HitInfo ShadowHit; Matrix4x4 M;
   bool bHit = false;
-  for (SceneNode* S : List)
+  Array<SceneNode*> OctList;
+  if (bUseOctree && (*Tree).Trace(OctList, Ray(TestLoc, PtToLight)))
   {
-    if (S->DepthTrace(Ray(TestLoc, PtToLight), dist, ShadowHit, M)) bHit = true;
+    for (SceneNode* S : OctList)
+    {
+      if (S->DepthTrace(Ray(TestLoc, PtToLight), dist, ShadowHit, M)) bHit = true;
+    }
+  }
+  else
+  {
+    for (SceneNode* S : *List)
+    {
+      if (S->DepthTrace(Ray(TestLoc, PtToLight), dist, ShadowHit, M)) bHit = true;
+    }
   }
   if (bHit && dist > 0.0005 && dist < LightDist) return false;
   return true;

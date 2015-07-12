@@ -1,5 +1,6 @@
 #include "primitive.hpp"
 #include "polyroots.hpp"
+#include "box.h"
 #include <cmath>
 #include <vector>
 

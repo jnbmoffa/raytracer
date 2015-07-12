@@ -8,9 +8,10 @@
 #include "Thread.h"
 #include <random>
 
-typedef std::list<SceneNode*> NodeList;
+typedef Array<SceneNode*> NodeList;
 extern double xDiv, yDiv;
 extern int SuperSamples;
+extern bool bUseOctree;
 
 void render(// What to render
                SceneNode* root,
@@ -31,7 +32,8 @@ class Image;
 class RenderThread : public Thread
 {
 protected:
-     NodeList List;
+     NodeList* List;
+     OcTree<SceneNode>* Tree;
      Image* img;
 
      int yMin, yMax, xMin, xMax;
@@ -49,10 +51,10 @@ protected:
      std::uniform_real_distribution<double> distribution;
 
 public:
-     RenderThread(NodeList L, Image* img, int yMin, int yMax, int xMin, int xMax, double pixelWidth, double pixelHeight, double halfWidth, double halfHeight,
+     RenderThread(NodeList* L, OcTree<SceneNode>* T, Image* img, int yMin, int yMax, int xMin, int xMax, double pixelWidth, double pixelHeight, double halfWidth, double halfHeight,
                   const Point3D& eye, const Vector3D& normRight, const Vector3D& normUp, const Vector3D& normView,
                   const Colour& ambient, const std::list<Light*>* lights) :
-               List(L), img(img), yMin(yMin), yMax(yMax), xMin(xMin), xMax(xMax), pixelWidth(pixelWidth), pixelHeight(pixelHeight),
+               List(L), Tree(T), img(img), yMin(yMin), yMax(yMax), xMin(xMin), xMax(xMax), pixelWidth(pixelWidth), pixelHeight(pixelHeight),
                halfWidth(halfWidth), halfHeight(halfHeight), eye(eye), normRight(normRight), normUp(normUp), normView(normView),
                ambient(ambient), lights(lights), distribution(0.0,1.0) {}
 

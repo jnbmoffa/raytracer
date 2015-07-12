@@ -5,6 +5,7 @@
 #include "algebra.hpp"
 #include "primitive.hpp"
 #include "material.hpp"
+#include "octree.h"
 
 class SceneNode {
 public:
@@ -15,7 +16,7 @@ public:
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
   virtual bool ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
 
-  virtual void FlattenScene(std::list<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
+  virtual void FlattenScene(Array<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
 
   const Matrix4x4& get_transform() const { return m_trans; }
   const Matrix4x4& get_inverse() const { return m_invtrans; }
@@ -50,6 +51,8 @@ public:
 
   // Returns true if and only if this node is a JointNode
   virtual bool is_joint() const;
+
+  virtual BoxF GetBox() { return BoxF(); }
 
   std::string m_name;
 protected:
@@ -86,13 +89,13 @@ protected:
   JointRange m_joint_x, m_joint_y;
 };
 
-class GeometryNode : public SceneNode {
+class GeometryNode : public SceneNode, OcTreeObject {
 public:
   GeometryNode(const std::string& name, Primitive* primitive);
   GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M = Matrix4x4());
   virtual ~GeometryNode();
 
-  virtual void FlattenScene(std::list<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
+  virtual void FlattenScene(Array<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
 
   virtual bool SimpleTrace(Ray R);
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
@@ -100,6 +103,8 @@ public:
 
   const Material* get_material() const;
   Material* get_material();
+
+  virtual BoxF GetBox() override;
 
   void set_material(Material* material)
   {

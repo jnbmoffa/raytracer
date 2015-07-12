@@ -1,156 +1,133 @@
 #pragma once
+#include "box.h"
 #include "array.h"
+#include <iostream>
 
-template<typename T>
-class Box
-{
-	T left;
-	T right;
-	T top;
-	T bottom;
-	T front;
-	T back;
-
-public:
-	Rect() :
-		left(0.f), right(0.f), top(0.f), bottom(0.f), front(0.f), back(0.f) {}
-
-	Rect(T left, T right, T top, T bottom, T front, T back) :
-		left(left), right(right), top(top), bottom(bottom), front(front), back(back) {}
-
-	inline T GetLeft() const
-	{
-		return left;
-	}
-
-	inline T GetRight() const
-	{
-		return right;
-	}
-
-	inline T GetTop() const
-	{
-		return top;
-	}
-
-	inline T GetBottom() const
-	{
-		return bottom;
-	}
-
-	inline T GetFront() const
-	{
-		return front;
-	}
-
-	inline T GetBack() const
-	{
-		return back;
-	}
-
-	inline T GetWidth() const
-	{
-		return abs(right - left);
-	}
-
-	inline T GetHeight() const
-	{
-		return abs(top - bottom);
-	}
-
-	inline T GetDepth() const
-	{
-		return abs(front - back);
-	}
-};
-
-typedef Box<double> BoxF;
-
-class QuadTreeObject
+class OcTreeObject
 {
 public:
 	// Every quad tree object needs to have a bouding box
 	virtual BoxF GetBox() = 0;
 };
 
-// Quad tree implementation that holds QuadObjectType objects inside of it
-// QuadObjectType must be a subclass of QuadTreeObject
-template<typename QuadObjectType = QuadTreeObject>
-class QuadTree
+// Quad tree implementation that holds OctObjectType objects inside of it
+// OctObjectType must be a subclass of OcTreeObject
+template<typename OctObjectType = OcTreeObject>
+class OcTree
 {
 	static const int MAX_OBJECTS = 1;
 	static const int MAX_LEVELS = 4;
 
 	int level;				// Depth in quad tree structure
 	BoxF Bounds;			// Bounds of this tree
-	Array<QuadObjectType*> objects;	// objects in this tree
-	Array<QuadTree*> nodes;	// quadrants
+	Array<OctObjectType*> objects;	// objects in this tree
+	Array<OcTree*> nodes;	// regions
 	
-	// Break this tree up into four quadrants
+	// Break this tree up into 8 cubes
 	void Split()
 	{
-		float halfWidth = Bounds.GetWidth() / 2;
-		float halfHeight = Bounds.GetHeight() / 2;
-		float x = Bounds.GetLeft();
+		float halfWidth = Bounds.GetWidth() / 2.f;
+		float halfHeight = Bounds.GetHeight() / 2.f;
+		float halfDepth = Bounds.GetDepth() / 2.f;
+		float l = Bounds.GetLeft();
 		float r = Bounds.GetRight();
-		float y = Bounds.GetTop();
-		float b = Bounds.GetBottom();
+		float t = Bounds.GetTop();
+		float bo = Bounds.GetBottom();
+		float f = Bounds.GetFront();
+		float ba = Bounds.GetBack();
 
-		// top left = 0
-		nodes.Add(new QuadTree(level + 1, BoxF(x, y, x + halfWidth, y + halfHeight)));
-		// top right = 1
-		nodes.Add(new QuadTree(level + 1, BoxF(x + halfWidth, y, r, y + halfHeight)));
-		// bottom left  = 2
-		nodes.Add(new QuadTree(level + 1, BoxF(x, y + halfHeight, x + halfWidth, b)));
-		// bottom right  = 3
-		nodes.Add(new QuadTree(level + 1, BoxF(x + halfWidth, y + halfHeight, r, b)));
+		// std::cout << level << std::endl;
+
+		// top left front = 0
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, f, f - halfDepth)));
+		// top right front = 1
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, f, f - halfDepth)));
+		// top left back = 2
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, ba + halfDepth, ba)));
+		// top right back = 3
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, ba + halfDepth, ba)));
+
+		// bottom left front = 4
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, f, f - halfDepth)));
+		// bottom right front = 5
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, f, f - halfDepth)));
+		// bottom left back = 6
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, ba + halfDepth, ba)));
+		// bottom right back = 7
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, ba + halfDepth, ba)));
 	}
 
-	// Return index of quadrant the rect fits into
+	// Return index of region the box fits into
 	int GetIndex(const BoxF& pBox)
 	{
 		int index = -1;
-		double vertMidpoint = Bounds.GetLeft() + Bounds.GetWidth() / 2;
-		double horiMidpoint = Bounds.GetTop() + Bounds.GetHeight() / 2;
+		double vertMidpoint = Bounds.GetLeft() + (Bounds.GetWidth() / 2.f);
+		double horiMidpoint = Bounds.GetBottom() + (Bounds.GetHeight() / 2.f);
+		double depthMidpoint = Bounds.GetBack() + (Bounds.GetDepth() / 2.f);
 
-		// Object can completely fit within the top quadrants
-		bool topHalf = (pBox.GetBottom() < horiMidpoint);
-		// Object can completely fit within the bottom quadrants
-		bool botHalf = (pBox.GetTop() > horiMidpoint);
+		// Object can completely fit within the top regions
+		bool topHalf = pBox.GetBottom() > horiMidpoint;
+		// Object can completely fit within the bottom regions
+		bool botHalf = pBox.GetTop() < horiMidpoint;
 
-		// Fits in left half
-		if (pBox.GetRight() < vertMidpoint)
+		// Object can completely fit in front regions
+		bool frontHalf = pBox.GetBack() > depthMidpoint;
+		// Object can completely fit in back regions
+		bool backHalf = pBox.GetFront() < depthMidpoint;
+
+		if (pBox.GetRight() < vertMidpoint) // left half
 		{
 			if (topHalf)	// top left
-				index = 0;
+			{
+				if (frontHalf)
+					index = 0;
+				else if (backHalf)
+					index = 2;
+			}
 			else if (botHalf)	// bottom left
-				index = 2;
+			{
+				if (frontHalf)
+					index = 4;
+				else if (backHalf)
+					index = 6;
+			}
 		}
-		// Fits in right half
-		else if (pBox.GetLeft() > vertMidpoint)
+		else if (pBox.GetLeft() > vertMidpoint) // right half
 		{
 			if (topHalf)	// top right
-				index = 1;
+			{
+				if (frontHalf)
+					index = 1;
+				else if (backHalf)
+					index = 3;
+			}
 			else if (botHalf)	// bottom right
-				index = 3;
+			{
+				if (frontHalf)
+					index = 5;
+				else if (backHalf)
+					index = 7;
+			}
 		}
 
 		return index;
 	}
 
 public:
-	QuadTree() {}
-	QuadTree(int pLevel, const RectF& Bounds) : level(pLevel), Bounds(Bounds) {}
-	~QuadTree()
+	OcTree() {}
+	OcTree(const BoxF& Bounds) : level(0), Bounds(Bounds) {  }
+	OcTree(int pLevel, const BoxF& Bounds) : level(pLevel), Bounds(Bounds) {  }
+	~OcTree()
 	{
 		this->Clear();
 	}
 
-	QuadTree& operator=(const QuadTree& RHS)
+	OcTree& operator=(const OcTree& RHS)
 	{
 		if (&RHS == this) return *this;
 
-		Bounds = BoxF(RHS.Bounds.GetLeft(), RHS.Bounds.GetTop(), RHS.Bounds.GetRight(), RHS.Bounds.GetBottom());
+		Bounds = BoxF(RHS.Bounds.GetLeft(), RHS.Bounds.GetRight(), RHS.Bounds.GetTop(), RHS.Bounds.GetBottom(),
+					  RHS.Bounds.GetFont(), RHS.Bounds.GetBack());
 
 		// Insert the other tree's objects into this one
 		for (unsigned int i = 0; i < RHS.objects.Num(); i++)
@@ -177,13 +154,8 @@ public:
 	}
 
 	// Add an object to the tree
-	void Insert(QuadObjectType* Object)
+	void Insert(OctObjectType* Object)
 	{
-		if (!Object->CanBeAddedToTree())
-		{
-			return;
-		}
-
 		BoxF pBox = Object->GetBox();
 
 		if (nodes.Num() > 0){
@@ -212,7 +184,7 @@ public:
 				if (index != -1)
 				{
 					nodes[index]->Insert(objects[i]);
-					objects.RemoveAt(i);
+					objects.RemoveAtSwap(i);
 				}
 				else
 				{
@@ -223,14 +195,14 @@ public:
 	}
 
 	// Get the objects nearby the provided rect in the tree
-	void Retrieve(Array<QuadObjectType*>& returnObjects, BoxF ObjectRect)
+	void Retrieve(Array<OctObjectType*>& returnObjects, BoxF ObjectRect)
 	{
 		int index = GetIndex(ObjectRect);
 
 		// Have subnodes
 		if (nodes.Num() > 0)
 		{
-			// ObjectRect fits into a subnode then retrieve objects from that node
+			// Object box fits into a subnode then retrieve objects from that node
 			if (index != -1)
 			{
 				nodes[index]->Retrieve(returnObjects, ObjectRect);
@@ -254,14 +226,26 @@ public:
 		return;
 	}
 
-	// // Return an array of bounding rectangle for all levels of the tree
-	// void GetBounds(Array<BoxF>& BoundsArray)
-	// {
-	// 	BoundsArray.Add(Bounds);
+	// Get the objects that might be hit by the ray
+	bool Trace(Array<OctObjectType*>& returnObjects, const Ray& r)
+	{
+		if ( (nodes.Num() > 0 || objects.Num() > 0) && Bounds.Intersects(r))
+		{
+			// check every subnode
+			for (OcTree* T : nodes)
+			{
+				T->Trace(returnObjects, r);
+			}
 
-	// 	for (unsigned int i = 0; i < nodes.Num(); i++)
-	// 	{
-	// 		nodes[i]->GetBounds(BoundsArray);
-	// 	}
-	// }
+			// Add our objects
+			for (OctObjectType* O : objects)
+			{
+				returnObjects.Add(O);
+			}
+
+			return true;
+		}
+
+		return false;
+	}
 };
