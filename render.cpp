@@ -6,8 +6,26 @@
 
 atomic_int PROGRESS(0);
 double yDiv = 1.f, xDiv = 1.f;
-int SuperSamples = 1;
-bool bUseOctree = false;
+int SuperSamples = 1, DOFRays = 1;
+bool bUseOctree = false, bUseDOF = false;
+double ApertureRadius = 2.f, FocalDistance = 200;
+
+BoxF GetSceneBounds(const Array<SceneNode*>& Scene)
+{
+  double inf = 1000000000.f;
+  BoxF Bounds(inf, -inf, -inf, inf, -inf, inf);
+  for (SceneNode* N : Scene)
+  {
+    BoxF B = N->GetBox();
+    Bounds.GetLeft() = std::min(Bounds.GetLeft(), B.GetLeft());
+    Bounds.GetRight() = std::max(Bounds.GetRight(), B.GetRight());
+    Bounds.GetTop() = std::max(Bounds.GetTop(), B.GetTop());
+    Bounds.GetBottom() = std::min(Bounds.GetBottom(), B.GetBottom());
+    Bounds.GetFront() = std::max(Bounds.GetFront(), B.GetFront());
+    Bounds.GetBack() = std::min(Bounds.GetBack(), B.GetBack());
+  }
+  return Bounds;
+}
 
 void render(// What to render
                SceneNode* root,
@@ -38,13 +56,16 @@ void render(// What to render
   // Scene setup
   Array<SceneNode*> List;
   root->FlattenScene(List);
+
+  // Octree
   std::cout << "Building octree..." << std::endl;
-  OcTree<SceneNode> Tree(BoxF(-4096.f, 4096.f, 4096.f, -4096.f, 4096.f, -4096.f));
+  OcTree<SceneNode> Tree(GetSceneBounds(List));
   for (SceneNode* s : List)
   {
     // std::cout << s->m_name << "," << s->GetBox() << std::endl;
     Tree.Insert(s);
   }
+  // std::cout << Tree << std::endl;
 
   // Ray setup
   Vector3D normView = view; normView.normalize();
@@ -53,7 +74,7 @@ void render(// What to render
 
   double radFOV = fov * (M_PI / 180.f);
   double heightWidthRatio = (double)width / (double)height;
-  double halfWidth = tan(radFOV/2),
+  double halfWidth = bUseDOF ? FocalDistance*tan(radFOV/2) : tan(radFOV/2),
          halfHeight = heightWidthRatio * halfWidth,
          cameraWidth = halfWidth * 2,
          cameraHeight = halfHeight * 2,
@@ -63,6 +84,7 @@ void render(// What to render
   Image img(width, height, 3);
 
   // Create rendering threads
+  std::cout << "Casting rays..." << std::endl;
   RenderThread* threads[(int)(xDiv*yDiv)];
   int i = 0;
   double H2 = height/yDiv, W3 = width/xDiv;
@@ -72,9 +94,8 @@ void render(// What to render
     {
       int endY = ((y+H2) > height) ? height : y+H2;
       int endX = ((x+W3) > width) ? width : x+W3;
-      //std::cout << y << "," << x << "," << H2 << "," << W3 << "," << endY << "," << endX << std::endl;
       threads[i++] = CreateThread<RenderThread> (&List, &Tree, &img, y, endY, x, endX, pixelWidth, pixelHeight, halfWidth, halfHeight,
-                                                 eye, normRight, normUp, normView, ambient, &lights);
+                                                 eye, normRight, normUp, normView, ambient, &lights, FocalDistance, ApertureRadius);
     }
   }
   
@@ -87,7 +108,7 @@ void render(// What to render
 
   for (int j=0;j<(int)(xDiv*yDiv);j++) threads[j]->Join();
 
-  std::cout << "Creating file..." << std::endl;
+  std::cout << "Creating image file..." << std::endl;
   img.savePng(filename);
 }
 
@@ -97,35 +118,43 @@ void RenderThread::Main()
   {
     for (int x=xMin;x<xMax;x++)
     {
+      if (bUseDOF) SetRandomEye();
       Colour Total;
-      if (SuperSamples > 1)
+      for (int d=0;d<DOFRays;d++)
       {
-        // Equally distributed super-samples (grid)
-        double numRays = (double)SuperSamples*SuperSamples;
-        Colour Cols[(int)numRays];
-        double halfSubWidth = 1.f/((double)SuperSamples*2.f); int index = 0;
-        // std::cout << numRays << "," << halfSubWidth << std::endl;
-        for (double i=halfSubWidth;i<1;i+=halfSubWidth*2)
+        if (SuperSamples > 1)
         {
-          for (double j=halfSubWidth;j<1;j+=halfSubWidth*2)
+          Colour SuperTotal;
+          // Equally distributed super-samples (grid)
+          double numRays = (double)SuperSamples*SuperSamples;
+          Colour Cols[(int)numRays];
+          double halfSubWidth = 1.f/((double)SuperSamples*2.f); int index = 0;
+          for (double i=halfSubWidth;i<1;i+=halfSubWidth*2)
           {
-            Cols[index++] = TracePixelNormalized(x, y, i, j);
+            for (double j=halfSubWidth;j<1;j+=halfSubWidth*2)
+            {
+              Cols[index++] = TracePixelNormalized(x, y, i, j);
+            }
           }
-        }
 
-        for (int i=0;i<(int)numRays;i++)
-        {
-          Total.R() += Cols[i].R();
-          Total.G() += Cols[i].G();
-          Total.B() += Cols[i].B();
+          for (int i=0;i<(int)numRays;i++)
+          {
+            SuperTotal.R() += Cols[i].R();
+            SuperTotal.G() += Cols[i].G();
+            SuperTotal.B() += Cols[i].B();
+          }
+          SuperTotal = SuperTotal / numRays;
+          Total = Total + SuperTotal;
         }
-        Total.R() /= numRays; Total.G() /= numRays; Total.B() /= numRays;
+        else
+        {
+          // Trace through center
+          Total = Total + TracePixelNormalized(x, y, 0.5f, 0.5f);
+        }
       }
-      else
-      {
-        // Trace through center
-        Total = TracePixelNormalized(x, y, 0.5f, 0.5f);
-      }
+
+      // Average DOF ray colour
+      Total = Total / DOFRays;
 
       (*img)(x, y, 0) = Total.R();
       (*img)(x, y, 1) = Total.G();
@@ -137,12 +166,27 @@ void RenderThread::Main()
 
 Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNorm)
 {
+  // Vector3D rightComp = ((x * pixelWidth) + (pixelWidth*xNorm) - halfWidth) * normRight;
+  // Vector3D upComp = ((y * pixelHeight) + (pixelHeight*yNorm) - halfHeight) * normUp;
+  // Vector3D RayDir = normView + rightComp + upComp;
+  // RayDir.normalize();
+
+  // Ray CurRay(eye, RayDir);
+
   Vector3D rightComp = ((x * pixelWidth) + (pixelWidth*xNorm) - halfWidth) * normRight;
   Vector3D upComp = ((y * pixelHeight) + (pixelHeight*yNorm) - halfHeight) * normUp;
-  Vector3D RayDir = normView + rightComp + upComp;
-  RayDir.normalize();
+  Vector3D View = bUseDOF ? FocalDist*normView : normView;
+  Point3D ViewPlanePoint = eye + View + rightComp + upComp;
 
-  Ray CurRay(eye, RayDir);
+  // Point3D RandomEyePoint = eye;
+  // if (bUseDOF)
+  // {
+  //   double R1 = ApertureDistribution(generator), R2 = ApertureDistribution(generator);
+  //   RandomEyePoint = eye + R1*xApertureRadius + R2*yApertureRadius;
+  // }
+
+  Vector3D RayDir = ViewPlanePoint - RandomEyePoint; RayDir.normalize();
+  Ray CurRay(RandomEyePoint, RayDir);
   return TraceRay(CurRay, 1.f, 0);
 }
 
@@ -187,8 +231,8 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
       {
         // Glossy
         Ray GlossRay; GlossRay.Start = ReflectedRay.Start;
-        double theta = acos(pow((1 - distribution(generator)), 1.f/(Hit.Mat->GetGloss()+1.f)));
-        double phi = 2.f * M_PI * distribution(generator);
+        double theta = acos(pow((1 - RefrDistribution(generator)), 1.f/(Hit.Mat->GetGloss()+1.f)));
+        double phi = 2.f * M_PI * RefrDistribution(generator);
         double x = sin(theta) * cos(phi);
         double y = sin(theta) * sin(phi);
         // std::cout << theta << "," << phi << "," << x << "," << y <<  std::endl;
@@ -204,7 +248,8 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
       }
 
       Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
-      Colour refrCol = powerCoef * (1 - Reflectance) * TraceColour + TraceRay(RefractedRay, powerCoef * (1 - Reflectance), depth + 1);
+      double refrCoef = powerCoef * (1 - Reflectance);
+      Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, depth + 1);
 
       return reflCol + refrCol;
     }
@@ -228,7 +273,7 @@ bool RenderThread::Trace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colou
   Array<SceneNode*> OctList;
   if (bUseOctree && (*Tree).Trace(OctList, R))
   {
-    // std::cout << "List:" <<  List.Num() << std::endl;
+    // std::cout << "List:" <<  OctList.Num() << std::endl;
     for (SceneNode* S : OctList)
     {
       if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
@@ -236,6 +281,7 @@ bool RenderThread::Trace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colou
   }
   else
   {
+    // std::cout << "List:" <<  (*List).Num() << std::endl;
     for (SceneNode* S : *List)
     {
       if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
@@ -303,4 +349,10 @@ bool RenderThread::IsLightVisible(const Point3D& LightPos, const Point3D& TestLo
   }
   if (bHit && dist > 0.0005 && dist < LightDist) return false;
   return true;
+}
+
+void RenderThread::SetRandomEye()
+{
+  double R1 = ApertureDistribution(generator), R2 = ApertureDistribution(generator);
+  RandomEyePoint = eye + R1*xApertureRadius + R2*yApertureRadius;
 }

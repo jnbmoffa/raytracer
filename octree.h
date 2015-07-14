@@ -15,13 +15,11 @@ public:
 template<typename OctObjectType = OcTreeObject>
 class OcTree
 {
-	static const int MAX_OBJECTS = 1;
-	static const int MAX_LEVELS = 4;
-
 	int level;				// Depth in quad tree structure
 	BoxF Bounds;			// Bounds of this tree
 	Array<OctObjectType*> objects;	// objects in this tree
 	Array<OcTree*> nodes;	// regions
+	int MAX_OBJECTS, MAX_LEVELS;
 	
 	// Break this tree up into 8 cubes
 	void Split()
@@ -114,8 +112,8 @@ class OcTree
 	}
 
 public:
-	OcTree() {}
-	OcTree(const BoxF& Bounds) : level(0), Bounds(Bounds) {  }
+	OcTree() : MAX_OBJECTS(1), MAX_LEVELS(4) {}
+	OcTree(const BoxF& Bounds, int maxObj = 1, int maxLvl = 4) : level(0), Bounds(Bounds), MAX_OBJECTS(maxObj), MAX_LEVELS(maxLvl) {  }
 	OcTree(int pLevel, const BoxF& Bounds) : level(pLevel), Bounds(Bounds) {  }
 	~OcTree()
 	{
@@ -248,4 +246,38 @@ public:
 
 		return false;
 	}
+
+	template<typename T>
+	friend std::ostream& operator <<(std::ostream& os, const OcTree<T>& B);
 };
+
+template<typename T>
+std::ostream& operator <<(std::ostream& os, const OcTree<T>& B)
+{
+	if (B.nodes.Num() == 0)
+	{
+		os << "Num objects: " << B.objects.Num();
+		for (int i = 0;i<B.objects.Num();i++)
+		{
+			os << std::endl;
+			for (int j=0;j<B.level;j++)
+			{
+				os << "  ";
+			}
+			os << B.objects[i]->GetBox();
+		}
+	}
+	else
+	{
+		for (int i = 0; i<B.nodes.Num(); i++)
+		{
+			os << std::endl;
+			for (int i=0;i<B.level;i++)
+			{
+				os << "  ";
+			}
+			os << "Tree (" << B.level << "," << i << "): " << *(B.nodes[i]);
+		}
+	}
+	return os;
+}

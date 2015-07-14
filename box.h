@@ -62,6 +62,36 @@ public:
 		return data[5];
 	}
 
+	inline T& GetLeft()
+	{
+		return data[0];
+	}
+
+	inline T& GetRight()
+	{
+		return data[1];
+	}
+
+	inline T& GetTop()
+	{
+		return data[2];
+	}
+
+	inline T& GetBottom()
+	{
+		return data[3];
+	}
+
+	inline T& GetFront()
+	{
+		return data[4];
+	}
+
+	inline T& GetBack()
+	{
+		return data[5];
+	}
+
 	inline T GetWidth() const
 	{
 		return abs(data[1] - data[0]);
@@ -88,7 +118,7 @@ public:
 	}
 
 	// Assumes axis aligned
-	// Return if the ray intersects or not (or starts inside of)
+	// Return if the ray intersects or not (or starts inside of). Optimized.
 	bool Intersects( const Ray& ray )
 	{
 		// Starts in box?
@@ -112,39 +142,6 @@ public:
 		tmin = std::max(tmin, std::min(tz1, tz2));
 		tmax = std::min(tmax, std::max(tz1, tz2));
 
-		return tmax >= std::max(0.0, tmin);
-	}
-
-	bool Trace( const Ray& ray, Vector3D& Normal, double& t )
-	{
-		double tx1 = (data[0] - ray.Start[0]) * ray.invDirection[0];
-		double tx2 = (data[1] - ray.Start[0]) * ray.invDirection[0];
-
-		double tmin = std::min(tx1, tx2);
-		double tmax = std::max(tx1, tx2);
-
-		double ty1 = (data[3] - ray.Start[1]) * ray.invDirection[1];
-		double ty2 = (data[2] - ray.Start[1]) * ray.invDirection[1];
-
-		tmin = std::max(tmin, std::min(ty1, ty2));
-		tmax = std::min(tmax, std::max(ty1, ty2));
-
-		double tz1 = (data[5] - ray.Start[2]) * ray.invDirection[2];
-		double tz2 = (data[4] - ray.Start[2]) * ray.invDirection[2];
-
-		tmin = std::max(tmin, std::min(tz1, tz2));
-		tmax = std::min(tmax, std::max(tz1, tz2));
-
-		t = tmin > 0 ? tmin : tmax;
-		if (t >= 0)
-		{
-			if (IsNearly(t, tx1)) Normal = Vector3D(-1,0,0);
-			else if (IsNearly(t, tx2)) Normal = Vector3D(1,0,0);
-			else if (IsNearly(t, ty1)) Normal = Vector3D(0,-1,0);
-			else if (IsNearly(t, ty2)) Normal = Vector3D(0,1,0);
-			else if (IsNearly(t, tz1)) Normal = Vector3D(0,0,-1);
-			else Normal = Vector3D(0,0,1);
-		}
 		return tmax >= std::max(0.0, tmin);
 	}
 

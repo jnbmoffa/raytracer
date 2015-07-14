@@ -66,6 +66,7 @@ public:
     m_trans.scale(Vector3D(radius, radius, radius));
     m_invtrans = m_trans.invert();
     Bounds = BoxF(m_pos[0]-m_radius, m_pos[0]+m_radius, m_pos[1]+m_radius, m_pos[1]-m_radius, m_pos[2]+m_radius, m_pos[2]-m_radius); 
+    Bounds.Transform(m_trans);
   }
   virtual ~NonhierSphere();
 

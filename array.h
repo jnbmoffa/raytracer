@@ -237,13 +237,13 @@ public:
 	};
 
 	// For range-based looping
-	inline Iterator begin()
+	inline Iterator begin() const
 	{
 		return Iterator(this, 0);
 	}
 
 	// For range-based looping
-	inline Iterator end()
+	inline Iterator end() const
 	{
 		return Iterator(this, NumElements);
 	}

@@ -9,9 +9,11 @@
 #include <random>
 
 typedef Array<SceneNode*> NodeList;
-extern double xDiv, yDiv;
-extern int SuperSamples;
-extern bool bUseOctree;
+extern double xDiv, yDiv, FocalDistance;
+extern int SuperSamples, DOFRays;
+extern bool bUseOctree, bUseDOF;
+
+BoxF GetSceneBounds(const Array<SceneNode*>& Scene);
 
 void render(// What to render
                SceneNode* root,
@@ -40,6 +42,7 @@ protected:
      double pixelWidth, pixelHeight, halfWidth, halfHeight;
 
      const Point3D& eye;
+     Point3D RandomEyePoint;
      const Vector3D& normRight;
      const Vector3D& normUp;
      const Vector3D& normView;
@@ -48,15 +51,25 @@ protected:
      const std::list<Light*>* lights;
 
      std::default_random_engine generator;
-     std::uniform_real_distribution<double> distribution;
+     std::uniform_real_distribution<double> RefrDistribution;
+     std::uniform_real_distribution<double> ApertureDistribution;
+
+     double FocalDist;
+
+     Vector3D xApertureRadius, yApertureRadius;
 
 public:
      RenderThread(NodeList* L, OcTree<SceneNode>* T, Image* img, int yMin, int yMax, int xMin, int xMax, double pixelWidth, double pixelHeight, double halfWidth, double halfHeight,
                   const Point3D& eye, const Vector3D& normRight, const Vector3D& normUp, const Vector3D& normView,
-                  const Colour& ambient, const std::list<Light*>* lights) :
+                  const Colour& ambient, const std::list<Light*>* lights, double FocalDist, double ApertureRadius) :
                List(L), Tree(T), img(img), yMin(yMin), yMax(yMax), xMin(xMin), xMax(xMax), pixelWidth(pixelWidth), pixelHeight(pixelHeight),
                halfWidth(halfWidth), halfHeight(halfHeight), eye(eye), normRight(normRight), normUp(normUp), normView(normView),
-               ambient(ambient), lights(lights), distribution(0.0,1.0) {}
+               ambient(ambient), lights(lights), RefrDistribution(0.f,1.f), ApertureDistribution(-1.f, 1.f), FocalDist(FocalDist)
+               {
+                    xApertureRadius = ApertureRadius*normRight;
+                    yApertureRadius = ApertureRadius*normUp;
+                    RandomEyePoint = eye;
+               }
 
      virtual void Main() override;
 
@@ -67,6 +80,7 @@ public:
 
      bool Trace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient);
      bool IsLightVisible(const Point3D& LightPos, const Point3D& TestLoc);
+     void SetRandomEye();
 };
 
 #endif

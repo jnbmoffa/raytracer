@@ -76,7 +76,7 @@ BALL:set_material(rblue)
 root:add_child(BALL)
 
 BALL = gr.sphere('BALL')
-BALL:translate(-7, 7, -7)
+BALL:translate(-7, 7, -4)
 BALL:scale(5, 5, 5)
 BALL:set_material(rblue)
 root:add_child(BALL)
@@ -90,6 +90,6 @@ root:add_child(BALL)
 
 white_light = gr.light({0.0, 29.0, 0.0}, {1, 1, 1}, {1, 0, 0})
 
-gr.render(root, 'sample.png', 1024, 1024,
+gr.render(root, 'sample.png', 512, 512,
 	  {0, 15, 40}, {0, 0, -1}, {0, 1, 0}, 50,
 	  {0.3, 0.3, 0.3}, {white_light})
