@@ -76,6 +76,8 @@ root:add_child(BALL)
 
 white_light = gr.light({0.0, 0.0, 50.0}, {1, 1, 1}, {1, 0, 0})
 
+camera = gr.camera({0, 0, 5000}, {0, 0, -1}, {0, 1, 0}, 50, 2, 4000)
+
 gr.render(root, 'octree.png', 1024, 1024,
-	  {0, 0, 5000}, {0, 0, -1}, {0, 1, 0}, 50,
+	  camera,
 	  {0.3, 0.3, 0.3}, {white_light})

@@ -6,12 +6,13 @@
 #include "scene.hpp"
 #include "light.hpp"
 #include "Thread.h"
+#include "camera.h"
 #include <random>
 
 typedef Array<SceneNode*> NodeList;
 extern double xDiv, yDiv, FocalDistance;
 extern int SuperSamples, DOFRays;
-extern bool bUseOctree, bUseDOF;
+extern bool bUseOctree, bUseDOF, bUseAdaptive;
 
 BoxF GetSceneBounds(const Array<SceneNode*>& Scene);
 
@@ -22,8 +23,7 @@ void render(// What to render
                // Image size
                int width, int height,
                // Viewing parameters
-               const Point3D& eye, const Vector3D& view,
-               const Vector3D& up, double fov,
+               Camera* cam,
                // Lighting parameters
                const Colour& ambient,
                const std::list<Light*>& lights
@@ -81,6 +81,7 @@ public:
      bool Trace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient);
      bool IsLightVisible(const Point3D& LightPos, const Point3D& TestLoc);
      void SetRandomEye();
+     Colour AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth);
 };
 
 #endif

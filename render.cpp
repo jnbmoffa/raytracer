@@ -7,8 +7,7 @@
 atomic_int PROGRESS(0);
 double yDiv = 1.f, xDiv = 1.f;
 int SuperSamples = 1, DOFRays = 1;
-bool bUseOctree = false, bUseDOF = false;
-double ApertureRadius = 2.f, FocalDistance = 200;
+bool bUseOctree = false, bUseDOF = false, bUseAdaptive = false;
 
 BoxF GetSceneBounds(const Array<SceneNode*>& Scene)
 {
@@ -34,17 +33,16 @@ void render(// What to render
                // Image size
                int width, int height,
                // Viewing parameters
-               const Point3D& eye, const Vector3D& view,
-               const Vector3D& up, double fov,
+               Camera* cam,
                // Lighting parameters
                const Colour& ambient,
                const std::list<Light*>& lights
                )
 {
   std::cout.precision(2);
-  std::cerr << "Stub: a4_render(" << root << ",\n     "
+  std::cerr << "render("
           << filename << ", " << width << ", " << height << ",\n     "
-          << eye << ", " << view << ", " << up << ", " << fov << ",\n     "
+          << *cam << ",\n     "
           << ambient << ",\n     {";
 
   for (std::list<Light*>::const_iterator I = lights.begin(); I != lights.end(); ++I) {
@@ -58,23 +56,26 @@ void render(// What to render
   root->FlattenScene(List);
 
   // Octree
-  std::cout << "Building octree..." << std::endl;
+  if (bUseOctree) std::cout << "Building octree..." << std::endl;
   OcTree<SceneNode> Tree(GetSceneBounds(List));
-  for (SceneNode* s : List)
+  if (bUseOctree)
   {
-    // std::cout << s->m_name << "," << s->GetBox() << std::endl;
-    Tree.Insert(s);
+    for (SceneNode* s : List)
+    {
+      // std::cout << s->m_name << "," << s->GetBox() << std::endl;
+      Tree.Insert(s);
+    }
   }
   // std::cout << Tree << std::endl;
 
   // Ray setup
-  Vector3D normView = view; normView.normalize();
-  Vector3D normUp = -up; normUp.normalize();
+  Vector3D normView = cam->view; normView.normalize();
+  Vector3D normUp = -cam->up; normUp.normalize();
   Vector3D normRight = normUp.cross(normView); normRight.normalize();
 
-  double radFOV = fov * (M_PI / 180.f);
+  double radFOV = cam->fov * (M_PI / 180.f);
   double heightWidthRatio = (double)width / (double)height;
-  double halfWidth = bUseDOF ? FocalDistance*tan(radFOV/2) : tan(radFOV/2),
+  double halfWidth = bUseDOF ? cam->FocalDistance*tan(radFOV/2) : tan(radFOV/2),
          halfHeight = heightWidthRatio * halfWidth,
          cameraWidth = halfWidth * 2,
          cameraHeight = halfHeight * 2,
@@ -95,7 +96,7 @@ void render(// What to render
       int endY = ((y+H2) > height) ? height : y+H2;
       int endX = ((x+W3) > width) ? width : x+W3;
       threads[i++] = CreateThread<RenderThread> (&List, &Tree, &img, y, endY, x, endX, pixelWidth, pixelHeight, halfWidth, halfHeight,
-                                                 eye, normRight, normUp, normView, ambient, &lights, FocalDistance, ApertureRadius);
+                                                 cam->eye, normRight, normUp, normView, ambient, &lights, cam->FocalDistance, cam->ApertureRadius);
     }
   }
   
@@ -118,10 +119,10 @@ void RenderThread::Main()
   {
     for (int x=xMin;x<xMax;x++)
     {
-      if (bUseDOF) SetRandomEye();
       Colour Total;
       for (int d=0;d<DOFRays;d++)
       {
+        if (bUseDOF) SetRandomEye();
         if (SuperSamples > 1)
         {
           Colour SuperTotal;
@@ -139,18 +140,21 @@ void RenderThread::Main()
 
           for (int i=0;i<(int)numRays;i++)
           {
-            SuperTotal.R() += Cols[i].R();
-            SuperTotal.G() += Cols[i].G();
-            SuperTotal.B() += Cols[i].B();
+            SuperTotal  = SuperTotal + Cols[i];
           }
           SuperTotal = SuperTotal / numRays;
           Total = Total + SuperTotal;
         }
+        else if (bUseAdaptive)
+        {
+          Total = Total + AdaptiveSuperSample(x, y, 0.f, 1.f, 0.f, 1.f, 0);
+        }
         else
         {
-          // Trace through center
+          // No Anti-aliasing - trace center
           Total = Total + TracePixelNormalized(x, y, 0.5f, 0.5f);
         }
+        // std::cout << Total << std::endl;
       }
 
       // Average DOF ray colour
@@ -355,4 +359,33 @@ void RenderThread::SetRandomEye()
 {
   double R1 = ApertureDistribution(generator), R2 = ApertureDistribution(generator);
   RandomEyePoint = eye + R1*xApertureRadius + R2*yApertureRadius;
+}
+
+Colour RenderThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth)
+{
+  Colour Cols[4];
+  double QuartX = (xNormMax - xNormMin)/4.f;
+  double QuartY = (yNormMax - yNormMin)/4.f;
+  Cols[0] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMin + QuartY);
+  Cols[1] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMax - QuartY);
+  Cols[2] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMin + QuartY);
+  Cols[3] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMax - QuartY);
+  Colour Total = Cols[0] + Cols[1] + Cols[2] + Cols[3];
+
+  // Not the same colours and can recurse
+  if (!(Cols[0] == Cols[1] && Cols[0] == Cols[2] && Cols[0] == Cols[3]) && depth < 2)
+  {
+    Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + QuartX*2, yNormMin, yNormMin + QuartY*2, depth+1) +
+                    AdaptiveSuperSample(x, y, xNormMin + QuartX*2, xNormMax, yNormMin, yNormMin + QuartY*2, depth+1) +
+                    AdaptiveSuperSample(x, y, xNormMin, xNormMin + QuartX*2, yNormMin + QuartY*2, yNormMax, depth+1) +
+                    AdaptiveSuperSample(x, y, xNormMin + QuartX*2, xNormMax, yNormMin + QuartY*2, yNormMax, depth+1);
+    Total = Total / 8.f;
+  }
+  // Same or too deep
+  else
+  {
+    Total = Total / 4.f;
+  }
+
+  return Total;
 }

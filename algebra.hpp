@@ -26,6 +26,11 @@
 
 #define EPSILON 0.0001
 
+inline bool IsNearly(const double& a, const double& comp, double EPS = EPSILON)
+{
+  return std::abs(a - comp) < EPS;
+}
+
 class Point2D
 {
 public:
@@ -650,7 +655,12 @@ private:
 
 inline bool operator !=(const Colour& a, const Colour& b)
 {
-  return a.R() != b.R() || a.G() != b.G() || a.B() != b.B();
+  return !IsNearly(a.R(), b.R()) || !IsNearly(a.G(), b.G()) || !IsNearly(a.B(), b.B());
+}
+
+inline bool operator ==(const Colour& a, const Colour& b)
+{
+  return IsNearly(a.R(), b.R(), 0.1) && IsNearly(a.G(), b.G(), 0.1) && IsNearly(a.B(), b.B(), 0.1);
 }
 
 inline Colour operator *(double s, const Colour& a)
@@ -718,10 +728,5 @@ struct Ray
   Vector3D Direction;
   Vector3D invDirection;
 };
-
-inline bool IsNearly(const double& a, const double& comp)
-{
-  return (a < (comp + EPSILON)) && (a > (comp - EPSILON));
-}
 
 #endif // CS488_ALGEBRA_HPP

@@ -43,6 +43,7 @@
 #include <vector>
 #include "lua488.hpp"
 #include "light.hpp"
+#include "camera.h"
 #include "render.hpp"
 #include "mesh.hpp"
 
@@ -86,6 +87,12 @@ struct gr_material_ud {
 // allocated by Lua to represent lights.
 struct gr_light_ud {
   Light* light;
+};
+
+// The "userdata" type for a camera. Objects of this type will be
+// allocated by Lua to represent cameras.
+struct gr_camera_ud {
+  Camera* camera;
 };
 
 // Useful function to retrieve and check an n-tuple of numbers.
@@ -334,7 +341,6 @@ int gr_light_cmd(lua_State* L)
 
   gr_light_ud* data = (gr_light_ud*)lua_newuserdata(L, sizeof(gr_light_ud));
   data->light = 0;
-
   
   Light l;
 
@@ -348,6 +354,32 @@ int gr_light_cmd(lua_State* L)
   data->light = new Light(l);
 
   luaL_newmetatable(L, "gr.light");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Make a camera
+extern "C"
+int gr_camera_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+
+  gr_camera_ud* data = (gr_camera_ud*)lua_newuserdata(L, sizeof(gr_camera_ud));
+  data->camera = 0;
+  
+  Camera c;
+
+  get_tuple(L, 1, &(c.eye[0]), 3);
+  get_tuple(L, 2, &(c.view[0]), 3);
+  get_tuple(L, 3, &(c.up[0]), 3);
+  c.fov = luaL_checknumber(L, 4);
+  c.ApertureRadius = luaL_checknumber(L, 5);
+  c.FocalDistance = luaL_checknumber(L, 6);
+  
+  data->camera = new Camera(c);
+
+  luaL_newmetatable(L, "gr.camera");
   lua_setmetatable(L, -2);
 
   return 1;
@@ -367,35 +399,32 @@ int gr_render_cmd(lua_State* L)
   int width = luaL_checknumber(L, 3);
   int height = luaL_checknumber(L, 4);
 
-  Point3D eye;
-  Vector3D view, up;
-  
-  get_tuple(L, 5, &eye[0], 3);
-  get_tuple(L, 6, &view[0], 3);
-  get_tuple(L, 7, &up[0], 3);
+  Camera* cam;
 
-  double fov = luaL_checknumber(L, 8);
+  gr_camera_ud* cdata = (gr_camera_ud*)luaL_checkudata(L, 5, "gr.camera");
+  luaL_argcheck(L, cdata != 0, 5, "Camera expected");
+  cam = cdata->camera;
 
   double ambient_data[3];
-  get_tuple(L, 9, ambient_data, 3);
+  get_tuple(L, 6, ambient_data, 3);
   Colour ambient(ambient_data[0], ambient_data[1], ambient_data[2]);
 
-  luaL_checktype(L, 10, LUA_TTABLE);
-  int light_count = luaL_getn(L, 10);
+  luaL_checktype(L, 7, LUA_TTABLE);
+  int light_count = luaL_getn(L, 7);
   
-  luaL_argcheck(L, light_count >= 1, 10, "Tuple of lights expected");
+  luaL_argcheck(L, light_count >= 1, 7, "Tuple of lights expected");
   std::list<Light*> lights;
   for (int i = 1; i <= light_count; i++) {
-    lua_rawgeti(L, 10, i);
+    lua_rawgeti(L, 7, i);
     gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
-    luaL_argcheck(L, ldata != 0, 10, "Light expected");
+    luaL_argcheck(L, ldata != 0, 7, "Light expected");
 
     lights.push_back(ldata->light);
     lua_pop(L, 1);
   }
 
   render(root->node, filename, width, height,
-            eye, view, up, fov,
+            cam,
             ambient, lights);
   
   return 0;
@@ -608,6 +637,7 @@ static const luaL_reg grlib_functions[] = {
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},
   {"light", gr_light_cmd},
+  {"camera", gr_camera_cmd},
   {"render", gr_render_cmd},
   {0, 0}
 };

@@ -112,7 +112,9 @@ for i = 1, 6 do
    an_arc:add_child(arc)
 end
 
+camera = gr.camera({0, 2, 30}, {0, 0, -1}, {0, 1, 0}, 50, 2, 800)
+
 gr.render(scene,
 	  'macho_cows.png', 512, 512,
-	  {0, 2, 30}, {0, 0, -1}, {0, 1, 0}, 50,
+	  camera,
 	  {0.4, 0.4, 0.4}, {gr.light({200, 202, 430}, {0.8, 0.8, 0.8}, {1, 0, 0})})

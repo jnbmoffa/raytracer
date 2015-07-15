@@ -6,6 +6,7 @@
 class OcTreeObject
 {
 public:
+	virtual ~OcTreeObject() {}
 	// Every quad tree object needs to have a bouding box
 	virtual BoxF GetBox() = 0;
 };
@@ -125,7 +126,7 @@ public:
 		if (&RHS == this) return *this;
 
 		Bounds = BoxF(RHS.Bounds.GetLeft(), RHS.Bounds.GetRight(), RHS.Bounds.GetTop(), RHS.Bounds.GetBottom(),
-					  RHS.Bounds.GetFont(), RHS.Bounds.GetBack());
+					  RHS.Bounds.GetFront(), RHS.Bounds.GetBack());
 
 		// Insert the other tree's objects into this one
 		for (unsigned int i = 0; i < RHS.objects.Num(); i++)

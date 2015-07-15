@@ -25,7 +25,7 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
   double radius = std::max(std::abs(center[0]-MaxX), std::max(std::abs(center[0]-MinX),
                   std::max(std::abs(center[1]-MaxY), std::max(std::abs(center[1]-MinY),
                   std::max(std::abs(center[2]-MaxZ), std::abs(center[2]-MinZ))))));
-  std::cout << radius << "," << center << std::endl;
+  // std::cout << radius << "," << center << std::endl;
   BoundingSphere = Sphere(center, radius);
   Bounds = BoxF(center[0] - radius, center[0]+radius, center[1]+radius, center[1]-radius, center[2]+radius, center[2]-radius);
 }
@@ -34,7 +34,7 @@ bool Mesh::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4&
 {
   bool ret = false;
   R.Direction.normalize();
-  if (BoundingSphere.SimpleTrace(R))
+  if (Bounds.Intersects(R))
   {
     for (std::vector<Face>::iterator iter = m_faces.begin(); iter != m_faces.end(); ++iter)
     {

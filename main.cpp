@@ -11,7 +11,7 @@ int main(int argc, char** argv)
   }
 
   int c;
-  while ((c = getopt(argc, argv, ":t:s:od:f:")) != -1) {
+  while ((c = getopt(argc, argv, ":t:s:od:a")) != -1) {
     switch(c) {
     case 't':
       xDiv = yDiv = atoi(optarg);
@@ -26,8 +26,8 @@ int main(int argc, char** argv)
       bUseDOF = true;
       DOFRays = atoi(optarg);
       break;
-    case 'f':
-      FocalDistance = atof(optarg);
+    case 'a':
+      bUseAdaptive = true;
       break;
     case ':':
       fprintf(stderr,
