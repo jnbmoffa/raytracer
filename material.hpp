@@ -2,17 +2,22 @@
 #define CS488_MATERIAL_HPP
 
 #include "algebra.hpp"
+#include <list>
+
+class Light;
+class SceneContainer;
 
 class Material {
 public:
   virtual ~Material();
-  virtual void apply_gl() const = 0;
   virtual Colour GetDiffuse() = 0;
   virtual Colour GetSpecular() = 0;
   virtual double GetShine() = 0;
   virtual bool GetRef() = 0;
   virtual double GetRefIndex() = 0;
   virtual double GetGloss() = 0;
+
+  virtual Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient) = 0;
 
 protected:
   Material()
@@ -27,13 +32,14 @@ public:
       , double glossiness = 0.f);
   virtual ~PhongMaterial();
 
-  virtual void apply_gl() const;
   virtual Colour GetDiffuse() override { return m_kd; }
   virtual Colour GetSpecular() override { return m_ks; }
   virtual double GetShine() override { return m_shininess; }
   virtual bool GetRef() override { return refractive; }
   virtual double GetRefIndex() override { return refractiveIndex; }
   virtual double GetGloss() override { return glossiness; }
+
+  Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient);
 
 private:
   Colour m_kd;

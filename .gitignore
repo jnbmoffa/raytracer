@@ -1,4 +1,6 @@
 *.png
+*.*~
+rt
 
 # Compiled Object files
 *.slo

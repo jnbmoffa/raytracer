@@ -660,7 +660,7 @@ inline bool operator !=(const Colour& a, const Colour& b)
 
 inline bool operator ==(const Colour& a, const Colour& b)
 {
-  return IsNearly(a.R(), b.R(), 0.1) && IsNearly(a.G(), b.G(), 0.1) && IsNearly(a.B(), b.B(), 0.1);
+  return IsNearly(a.R(), b.R(), 0.1) && IsNearly(a.G(), b.G(), 0.1) && IsNearly(a.B(), b.B(), 0.01);
 }
 
 inline Colour operator *(double s, const Colour& a)

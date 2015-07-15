@@ -1,4 +1,5 @@
 #include "light.hpp"
+#include "scenecontainer.h"
 #include <iostream>
 
 Light::Light()
@@ -8,6 +9,17 @@ Light::Light()
   falloff[0] = 1.0;
   falloff[1] = 0.0;
   falloff[2] = 0.0;
+}
+
+bool Light::IsVisibleFrom(SceneContainer* Scene, const Point3D& TestLoc)
+{
+  Vector3D PtToLight = position - TestLoc;
+  double LightDist = PtToLight.length();
+  PtToLight.normalize();
+  double dist = 1000000.f;
+  bool bHit = Scene->DepthTrace(Ray(TestLoc, PtToLight), dist);
+  if (bHit && dist > EPSILON && dist < LightDist) return false;
+  return true;
 }
 
 std::ostream& operator<<(std::ostream& out, const Light& l)

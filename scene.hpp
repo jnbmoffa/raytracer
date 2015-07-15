@@ -6,6 +6,7 @@
 #include "primitive.hpp"
 #include "material.hpp"
 #include "octree.h"
+#include "array.h"
 
 class SceneNode {
 public:
@@ -115,5 +116,7 @@ protected:
   Material* m_material;
   Primitive* m_primitive;
 };
+
+BoxF GetSceneBounds(const Array<SceneNode*>& Scene);
 
 #endif

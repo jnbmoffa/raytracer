@@ -174,3 +174,20 @@ BoxF GeometryNode::GetBox()
   Bounds.Transform(m_trans);
   return Bounds;
 }
+
+BoxF GetSceneBounds(const Array<SceneNode*>& Scene)
+{
+  double inf = 1000000000.f;
+  BoxF Bounds(inf, -inf, -inf, inf, -inf, inf);
+  for (SceneNode* N : Scene)
+  {
+    BoxF B = N->GetBox();
+    Bounds.GetLeft() = std::min(Bounds.GetLeft(), B.GetLeft());
+    Bounds.GetRight() = std::max(Bounds.GetRight(), B.GetRight());
+    Bounds.GetTop() = std::max(Bounds.GetTop(), B.GetTop());
+    Bounds.GetBottom() = std::min(Bounds.GetBottom(), B.GetBottom());
+    Bounds.GetFront() = std::max(Bounds.GetFront(), B.GetFront());
+    Bounds.GetBack() = std::min(Bounds.GetBack(), B.GetBack());
+  }
+  return Bounds;
+}

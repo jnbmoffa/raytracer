@@ -3,28 +3,12 @@
 #include <cmath>
 #include <limits>
 #include "octree.h"
+#include "scenecontainer.h"
 
 atomic_int PROGRESS(0);
 double yDiv = 1.f, xDiv = 1.f;
 int SuperSamples = 1, DOFRays = 1;
 bool bUseOctree = false, bUseDOF = false, bUseAdaptive = false;
-
-BoxF GetSceneBounds(const Array<SceneNode*>& Scene)
-{
-  double inf = 1000000000.f;
-  BoxF Bounds(inf, -inf, -inf, inf, -inf, inf);
-  for (SceneNode* N : Scene)
-  {
-    BoxF B = N->GetBox();
-    Bounds.GetLeft() = std::min(Bounds.GetLeft(), B.GetLeft());
-    Bounds.GetRight() = std::max(Bounds.GetRight(), B.GetRight());
-    Bounds.GetTop() = std::max(Bounds.GetTop(), B.GetTop());
-    Bounds.GetBottom() = std::min(Bounds.GetBottom(), B.GetBottom());
-    Bounds.GetFront() = std::max(Bounds.GetFront(), B.GetFront());
-    Bounds.GetBack() = std::min(Bounds.GetBack(), B.GetBack());
-  }
-  return Bounds;
-}
 
 void render(// What to render
                SceneNode* root,
@@ -56,22 +40,22 @@ void render(// What to render
   root->FlattenScene(List);
 
   // Octree
-  if (bUseOctree) std::cout << "Building octree..." << std::endl;
-  OcTree<SceneNode> Tree(GetSceneBounds(List));
+  SceneContainer* Scene;
   if (bUseOctree)
   {
-    for (SceneNode* s : List)
-    {
-      // std::cout << s->m_name << "," << s->GetBox() << std::endl;
-      Tree.Insert(s);
-    }
+     Scene = new OctreeSceneContainer(&List, &lights);
+  }
+  else
+  {
+    Scene = new SceneContainer(&List, &lights);
   }
   // std::cout << Tree << std::endl;
 
   // Ray setup
-  Vector3D normView = cam->view; normView.normalize();
-  Vector3D normUp = -cam->up; normUp.normalize();
-  Vector3D normRight = normUp.cross(normView); normRight.normalize();
+  cam->view = cam->view; cam->view.normalize();
+  cam->up = -cam->up; cam->up.normalize();
+  cam->right = cam->up.cross(cam->view); cam->right.normalize();
+  cam->CalcApertureRadius();
 
   double radFOV = cam->fov * (M_PI / 180.f);
   double heightWidthRatio = (double)width / (double)height;
@@ -95,8 +79,8 @@ void render(// What to render
     {
       int endY = ((y+H2) > height) ? height : y+H2;
       int endX = ((x+W3) > width) ? width : x+W3;
-      threads[i++] = CreateThread<RenderThread> (&List, &Tree, &img, y, endY, x, endX, pixelWidth, pixelHeight, halfWidth, halfHeight,
-                                                 cam->eye, normRight, normUp, normView, ambient, &lights, cam->FocalDistance, cam->ApertureRadius);
+      threads[i++] = CreateThread<RenderThread> (Scene, &img, y, endY, x, endX, pixelWidth, pixelHeight, halfWidth, halfHeight,
+                                                 cam, ambient, &lights);
     }
   }
   
@@ -109,8 +93,10 @@ void render(// What to render
 
   for (int j=0;j<(int)(xDiv*yDiv);j++) threads[j]->Join();
 
-  std::cout << "Creating image file..." << std::endl;
+  std::cout << "Creating image file (" << filename << ")..." << std::endl;
   img.savePng(filename);
+
+  delete Scene;
 }
 
 void RenderThread::Main()
@@ -122,7 +108,8 @@ void RenderThread::Main()
       Colour Total;
       for (int d=0;d<DOFRays;d++)
       {
-        if (bUseDOF) SetRandomEye();
+        if (bUseDOF) RandomEyePoint = NormCam->GetRandomEye();
+        // std::cout << RandomEyePoint << std::endl;
         if (SuperSamples > 1)
         {
           Colour SuperTotal;
@@ -170,24 +157,10 @@ void RenderThread::Main()
 
 Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNorm)
 {
-  // Vector3D rightComp = ((x * pixelWidth) + (pixelWidth*xNorm) - halfWidth) * normRight;
-  // Vector3D upComp = ((y * pixelHeight) + (pixelHeight*yNorm) - halfHeight) * normUp;
-  // Vector3D RayDir = normView + rightComp + upComp;
-  // RayDir.normalize();
-
-  // Ray CurRay(eye, RayDir);
-
-  Vector3D rightComp = ((x * pixelWidth) + (pixelWidth*xNorm) - halfWidth) * normRight;
-  Vector3D upComp = ((y * pixelHeight) + (pixelHeight*yNorm) - halfHeight) * normUp;
-  Vector3D View = bUseDOF ? FocalDist*normView : normView;
-  Point3D ViewPlanePoint = eye + View + rightComp + upComp;
-
-  // Point3D RandomEyePoint = eye;
-  // if (bUseDOF)
-  // {
-  //   double R1 = ApertureDistribution(generator), R2 = ApertureDistribution(generator);
-  //   RandomEyePoint = eye + R1*xApertureRadius + R2*yApertureRadius;
-  // }
+  Vector3D rightComp = ((x * pixelWidth) + (pixelWidth*xNorm) - halfWidth) * NormCam->right;
+  Vector3D upComp = ((y * pixelHeight) + (pixelHeight*yNorm) - halfHeight) * NormCam->up;
+  Vector3D View = bUseDOF ? NormCam->FocalDistance*NormCam->view : NormCam->view;
+  Point3D ViewPlanePoint = NormCam->eye + View + rightComp + upComp;
 
   Vector3D RayDir = ViewPlanePoint - RandomEyePoint; RayDir.normalize();
   Ray CurRay(RandomEyePoint, RayDir);
@@ -196,11 +169,11 @@ Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNo
 
 Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
 {
-  if (powerCoef <= 0.005 || depth >= 10) return Colour();
+  if (powerCoef <= 0.05 || depth >= 10) return Colour();
 
   Colour TraceColour(0, 0, 0);
   HitInfo Hit;
-  if (!Trace(TraceColour, R, Hit, ambient)) return Colour();
+  if (!Scene->Trace(TraceColour, R, Hit, ambient)) return Colour();
 
   // Refraction enabled?
   if (Hit.Mat->GetRef())
@@ -239,9 +212,10 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
         double phi = 2.f * M_PI * RefrDistribution(generator);
         double x = sin(theta) * cos(phi);
         double y = sin(theta) * sin(phi);
-        // std::cout << theta << "," << phi << "," << x << "," << y <<  std::endl;
-        Vector3D u = ReflectedRay.Direction.cross(Hit.Normal); //u.normalize();
-        Vector3D v = ReflectedRay.Direction.cross(u); //v.normalize();
+        Vector3D u = ReflectedRay.Direction.cross(Hit.Normal);
+        Vector3D v = ReflectedRay.Direction.cross(u);
+
+        // Perturb ray
         GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
         GlossRay.Direction.normalize();
         reflCol = TraceRay(GlossRay, powerCoef * Reflectance, depth + 1);
@@ -270,97 +244,6 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
   }
 }
 
-bool RenderThread::Trace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient)
-{
-  double closestDist = 10000000.f; Matrix4x4 M;
-  bool bHit = false;
-  Array<SceneNode*> OctList;
-  if (bUseOctree && (*Tree).Trace(OctList, R))
-  {
-    // std::cout << "List:" <<  OctList.Num() << std::endl;
-    for (SceneNode* S : OctList)
-    {
-      if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
-    }
-  }
-  else
-  {
-    // std::cout << "List:" <<  (*List).Num() << std::endl;
-    for (SceneNode* S : *List)
-    {
-      if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
-    }
-  }
-
-  if (bHit)
-  {
-    Hit.Normal.normalize();
-
-    // Lighting
-    // Ambient
-    OutCol = ambient*Hit.Mat->GetDiffuse();
-    for (Light* L : *lights)
-    {
-      // Shadows
-      if (!IsLightVisible(L->position, Hit.Location)) continue;
-
-      // Diffuse
-      Vector3D LightDir = L->position - Hit.Location; LightDir.normalize();
-      double LdotN = LightDir.dot(Hit.Normal);
-      if (Hit.Mat->GetDiffuse() != Colour(0, 0, 0))
-      {
-        if (LdotN < 0) LdotN = 0;
-        Colour Diffuse = Hit.Mat->GetDiffuse() * L->colour * LdotN;
-        OutCol = OutCol + Diffuse;
-      }
-
-      // Specular
-      if (Hit.Mat->GetSpecular() != Colour(0, 0, 0))
-      {
-        Vector3D TempEye = R.Start - Hit.Location; TempEye.normalize();
-        Vector3D Reflection = ((2*LdotN)*Hit.Normal) - LightDir; Reflection.normalize();
-        double RdotE = Reflection.dot(TempEye);
-        if (RdotE > 0) OutCol = OutCol + (L->colour * Hit.Mat->GetSpecular() * pow(RdotE, Hit.Mat->GetShine()));
-      }
-    }
-    return true;
-  }
-  return false;
-}
-
-bool RenderThread::IsLightVisible(const Point3D& LightPos, const Point3D& TestLoc)
-{
-  Vector3D PtToLight = LightPos - TestLoc;
-  double LightDist = PtToLight.length();
-  PtToLight.normalize();
-  double dist = 1000000.f;
-  HitInfo ShadowHit; Matrix4x4 M;
-  bool bHit = false;
-  Array<SceneNode*> OctList;
-  if (bUseOctree && (*Tree).Trace(OctList, Ray(TestLoc, PtToLight)))
-  {
-    for (SceneNode* S : OctList)
-    {
-      if (S->DepthTrace(Ray(TestLoc, PtToLight), dist, ShadowHit, M)) bHit = true;
-    }
-  }
-  else
-  {
-    for (SceneNode* S : *List)
-    {
-      if (S->DepthTrace(Ray(TestLoc, PtToLight), dist, ShadowHit, M)) bHit = true;
-    }
-  }
-  if (bHit && dist > 0.0005 && dist < LightDist) return false;
-  return true;
-}
-
-void RenderThread::SetRandomEye()
-{
-  double R1 = ApertureDistribution(generator), R2 = ApertureDistribution(generator);
-  RandomEyePoint = eye + R1*xApertureRadius + R2*yApertureRadius;
-}
-
 Colour RenderThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth)
 {
   Colour Cols[4];
@@ -375,10 +258,12 @@ Colour RenderThread::AdaptiveSuperSample(int x, int y, double xNormMin, double x
   // Not the same colours and can recurse
   if (!(Cols[0] == Cols[1] && Cols[0] == Cols[2] && Cols[0] == Cols[3]) && depth < 2)
   {
-    Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + QuartX*2, yNormMin, yNormMin + QuartY*2, depth+1) +
-                    AdaptiveSuperSample(x, y, xNormMin + QuartX*2, xNormMax, yNormMin, yNormMin + QuartY*2, depth+1) +
-                    AdaptiveSuperSample(x, y, xNormMin, xNormMin + QuartX*2, yNormMin + QuartY*2, yNormMax, depth+1) +
-                    AdaptiveSuperSample(x, y, xNormMin + QuartX*2, xNormMax, yNormMin + QuartY*2, yNormMax, depth+1);
+    double HalfX = QuartX*2, HalfY = QuartY*2;
+    unsigned int newDepth = depth+1;
+    Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth) +
+                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth) +
+                    AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth) +
+                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth);
     Total = Total / 8.f;
   }
   // Same or too deep
