@@ -9,7 +9,7 @@ protected:
   BoxF Bounds;
 public:
   virtual ~Primitive();
-  virtual bool SimpleTrace(Ray R) { (void)R; return false; }
+  virtual bool SimpleTrace(Ray R) { return Bounds.Intersects(R); }
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M)
     { (void)R; (void)closestDist; (void)M; (void)Hit; return false; }
   inline BoxF GetBox() { return Bounds; }
@@ -89,7 +89,6 @@ public:
   }
 
   bool IsInside(Point3D Int, Vector3D Mask);
-  virtual bool SimpleTrace(Ray R);
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M);
   
   virtual ~NonhierBox();

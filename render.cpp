@@ -49,7 +49,7 @@ void render(// What to render
   {
     Scene = new SceneContainer(&List, &lights);
   }
-  // std::cout << Tree << std::endl;
+  Scene->MapPhotons();
 
   // Ray setup
   cam->view = cam->view; cam->view.normalize();
@@ -169,11 +169,11 @@ Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNo
 
 Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
 {
-  if (powerCoef <= 0.05 || depth >= 10) return Colour();
+  if (powerCoef <= 0.05 || depth >= 9) return Colour();
 
   Colour TraceColour(0, 0, 0);
   HitInfo Hit;
-  if (!Scene->Trace(TraceColour, R, Hit, ambient)) return Colour();
+  if (!Scene->RayTrace(TraceColour, R, Hit, ambient)) return Colour();
 
   // Refraction enabled?
   if (Hit.Mat->GetRef())
@@ -197,7 +197,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
     if (sin2t <= 1.f)
     {
       // Fresnel
-      double cost = sqrt(1-sin2t);
+      double cost = sqrt(1.f-sin2t);
       double R1 = (ni*NdotR - nt*cost)/(ni*NdotR + nt*cost); R1 *= R1;
       double R2 = (nt*NdotR - ni*cost)/(nt*NdotR + ni*cost); R2 *= R2;
       double Reflectance = (R1 + R2)/2.f;
@@ -208,17 +208,23 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
       {
         // Glossy
         Ray GlossRay; GlossRay.Start = ReflectedRay.Start;
-        double theta = acos(pow((1 - RefrDistribution(generator)), 1.f/(Hit.Mat->GetGloss()+1.f)));
-        double phi = 2.f * M_PI * RefrDistribution(generator);
-        double x = sin(theta) * cos(phi);
-        double y = sin(theta) * sin(phi);
         Vector3D u = ReflectedRay.Direction.cross(Hit.Normal);
         Vector3D v = ReflectedRay.Direction.cross(u);
 
-        // Perturb ray
-        GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
-        GlossRay.Direction.normalize();
-        reflCol = TraceRay(GlossRay, powerCoef * Reflectance, depth + 1);
+        Colour TotalGloss;
+        for (int i=0;i<4;i++)
+        {
+          double theta = acos(pow((1.f - RefrDistribution(generator)), 1.f/(Hit.Mat->GetGloss()+1.f)));
+          double phi = 2.f * M_PI * RefrDistribution(generator);
+          double x = sin(theta) * cos(phi);
+          double y = sin(theta) * sin(phi);
+
+          // Perturb ray
+          GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
+          GlossRay.Direction.normalize();
+          TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, depth + 1);
+        }
+        reflCol = TotalGloss / 4.f;
       }
       else
       {
@@ -226,7 +232,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
       }
 
       Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
-      double refrCoef = powerCoef * (1 - Reflectance);
+      double refrCoef = powerCoef * (1.f - Reflectance);
       Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, depth + 1);
 
       return reflCol + refrCol;
@@ -255,7 +261,7 @@ Colour RenderThread::AdaptiveSuperSample(int x, int y, double xNormMin, double x
   Cols[3] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMax - QuartY);
   Colour Total = Cols[0] + Cols[1] + Cols[2] + Cols[3];
 
-  // Not the same colours and can recurse
+  // Not the same colours - recurse
   if (!(Cols[0] == Cols[1] && Cols[0] == Cols[2] && Cols[0] == Cols[3]) && depth < 2)
   {
     double HalfX = QuartX*2, HalfY = QuartY*2;
@@ -266,7 +272,7 @@ Colour RenderThread::AdaptiveSuperSample(int x, int y, double xNormMin, double x
                     AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth);
     Total = Total / 8.f;
   }
-  // Same or too deep
+  // Same colours or too deep
   else
   {
     Total = Total / 4.f;

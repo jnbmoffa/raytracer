@@ -6,6 +6,7 @@
 
 class Light;
 class SceneContainer;
+class PhotonMap;
 
 class Material {
 public:

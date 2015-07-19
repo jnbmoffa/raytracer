@@ -28,4 +28,4 @@ camera = gr.camera({0, 0, 1000}, {0, 0, -1}, {0, 1, 0}, 50, 5, 1000)
 
 gr.render(root, 'DOF.png', 512, 512,
 	  camera,
-	  {0.3, 0.3, 0.3}, {white_light})
+	  {0.3, 0.3, 0.3}, {white_light}, {})

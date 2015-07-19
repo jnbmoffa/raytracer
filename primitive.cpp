@@ -320,11 +320,6 @@ NonhierBox::~NonhierBox()
 {
 }
 
-bool NonhierBox::SimpleTrace(Ray R)
-{
-	(void)R; return false;
-}
-
 bool NonhierBox::IsInside(Point3D Int, Vector3D Mask)
 {
 	bool xCheck = true, yCheck = true, zCheck = true;

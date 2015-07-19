@@ -345,15 +345,47 @@ int gr_light_cmd(lua_State* L)
   Light l;
 
   double col[3];
-  get_tuple(L, 1, &l.position[0], 3);
-  get_tuple(L, 2, col, 3);
-  get_tuple(L, 3, l.falloff, 3);
+  // power
+  l.power = luaL_checknumber(L, 1);
+  get_tuple(L, 2, &l.position[0], 3);
+  get_tuple(L, 3, col, 3);
+  get_tuple(L, 4, l.falloff, 3);
 
   l.colour = Colour(col[0], col[1], col[2]);
   
   data->light = new Light(l);
 
   luaL_newmetatable(L, "gr.light");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Make aarea point light
+extern "C"
+int gr_alight_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+
+  gr_light_ud* data = (gr_light_ud*)lua_newuserdata(L, sizeof(gr_light_ud));
+  data->light = 0;
+  
+  SphereLight l;
+
+  double col[3];
+  l.power = luaL_checknumber(L, 1);
+  get_tuple(L, 2, &l.position[0], 3);
+  get_tuple(L, 3, col, 3);
+  get_tuple(L, 4, l.falloff, 3);
+  l.radius = luaL_checknumber(L, 5);
+  l.NumRings = luaL_checknumber(L, 6);
+  l.RingPoints = luaL_checknumber(L, 7);
+
+  l.colour = Colour(col[0], col[1], col[2]);
+  
+  data->light = new SphereLight(l);
+
+  luaL_newmetatable(L, "gr.alight");
   lua_setmetatable(L, -2);
 
   return 1;
@@ -412,12 +444,26 @@ int gr_render_cmd(lua_State* L)
   luaL_checktype(L, 7, LUA_TTABLE);
   int light_count = luaL_getn(L, 7);
   
-  luaL_argcheck(L, light_count >= 1, 7, "Tuple of lights expected");
+  // luaL_argcheck(L, light_count >= 1, 7, "Tuple of lights expected");
   std::list<Light*> lights;
   for (int i = 1; i <= light_count; i++) {
     lua_rawgeti(L, 7, i);
     gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
     luaL_argcheck(L, ldata != 0, 7, "Light expected");
+
+    lights.push_back(ldata->light);
+    lua_pop(L, 1);
+  }
+
+  luaL_checktype(L, 8, LUA_TTABLE);
+  int alight_count = luaL_getn(L, 8);
+  
+  // luaL_argcheck(L, light_count >= 1, 8, "Tuple of lights expected");
+  // std::list<Light*> lights;
+  for (int i = 1; i <= alight_count; i++) {
+    lua_rawgeti(L, 8, i);
+    gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.alight");
+    luaL_argcheck(L, ldata != 0, 8, "Area Light expected");
 
     lights.push_back(ldata->light);
     lua_pop(L, 1);
@@ -637,6 +683,7 @@ static const luaL_reg grlib_functions[] = {
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},
   {"light", gr_light_cmd},
+  {"alight", gr_alight_cmd},
   {"camera", gr_camera_cmd},
   {"render", gr_render_cmd},
   {0, 0}

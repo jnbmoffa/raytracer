@@ -653,14 +653,14 @@ private:
   double b_;
 };
 
-inline bool operator !=(const Colour& a, const Colour& b)
-{
-  return !IsNearly(a.R(), b.R()) || !IsNearly(a.G(), b.G()) || !IsNearly(a.B(), b.B());
-}
-
 inline bool operator ==(const Colour& a, const Colour& b)
 {
-  return IsNearly(a.R(), b.R(), 0.1) && IsNearly(a.G(), b.G(), 0.1) && IsNearly(a.B(), b.B(), 0.01);
+  return IsNearly(a.R(), b.R(), 0.01) && IsNearly(a.G(), b.G(), 0.01) && IsNearly(a.B(), b.B(), 0.01);
+}
+
+inline bool operator !=(const Colour& a, const Colour& b)
+{
+  return !(a == b);
 }
 
 inline Colour operator *(double s, const Colour& a)
@@ -692,6 +692,8 @@ class Material;
 
 struct HitInfo
 {
+  HitInfo() : Mat(nullptr) {}
+
   Point3D Location;
   Vector3D Normal;
   Material* Mat;
@@ -726,7 +728,7 @@ struct Ray
 
   Point3D Start;
   Vector3D Direction;
-  Vector3D invDirection;
+  Vector3D invDirection;  // AABB optimization
 };
 
 #endif // CS488_ALGEBRA_HPP

@@ -53,7 +53,7 @@ public:
      RenderThread(SceneContainer* Scene, Image* img, int yMin, int yMax, int xMin, int xMax, double pixelWidth, double pixelHeight, double halfWidth, double halfHeight,
                   Camera* Cam, const Colour& ambient, const std::list<Light*>* lights) :
                Scene(Scene), img(img), yMin(yMin), yMax(yMax), xMin(xMin), xMax(xMax), pixelWidth(pixelWidth), pixelHeight(pixelHeight),
-               halfWidth(halfWidth), halfHeight(halfHeight), NormCam(Cam), ambient(ambient), lights(lights),
+               halfWidth(halfWidth), halfHeight(halfHeight), NormCam(Cam), ambient(ambient), lights(lights), generator(std::random_device{}()),
                RefrDistribution(0.f,1.f)
                {
                     RandomEyePoint = Cam->eye;

@@ -128,4 +128,4 @@ camera = gr.camera({0, 0, 5000}, {0, 0, -1}, {0, 1, 0}, 50, 2, 4000)
 
 gr.render(root, 'octree.png', 1024, 1024,
 	  camera,
-	  {0.3, 0.3, 0.3}, {white_light})
+	  {0.3, 0.3, 0.3}, {white_light}, {})

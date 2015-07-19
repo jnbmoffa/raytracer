@@ -20,7 +20,7 @@ struct Camera {
 	{
 		xApertureRadius = ApertureRadius*right;
         yApertureRadius = ApertureRadius*up;
-        std::cout << xApertureRadius << "," << yApertureRadius << std::endl;
+        // std::cout << xApertureRadius << "," << yApertureRadius << std::endl;
 	}
 
 	inline Point3D GetRandomEye()

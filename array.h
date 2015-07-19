@@ -1,4 +1,5 @@
 #pragma once
+#include <stdexcept>
 
 #define INDEX_NONE -1
 
@@ -73,7 +74,7 @@ public:
 		// Allocate more space if full
 		if (NumElements == MaxNumElements)
 		{
-			AllocateNewSpace(NumElements + 1);
+			AllocateNewSpace(MaxNumElements>0 ? MaxNumElements*2 : 1);
 		}
 
 		Contents[NumElements++] = NewItem;
@@ -99,7 +100,7 @@ public:
 			// Allocate more space if full
 			if (NumElements == MaxNumElements)
 			{
-				AllocateNewSpace(NumElements + 1);
+				AllocateNewSpace(MaxNumElements>0 ? MaxNumElements*2 : 1);
 			}
 
 			// Shift everything forward to make room
@@ -196,6 +197,27 @@ public:
 		return INDEX_NONE;
 	}
 
+	// Split this array into two around the index
+	// a = [0,Index), b = (Index,End]
+	bool Split(unsigned int Index, Array<T>& a, Array<T>& b)
+	{
+		if (IsValidIndex(Index) && NumElements > 1)
+		{
+			a.Clear(); b.Clear();
+			a.Reserve(Index); b.Reserve(NumElements-Index);
+			for (unsigned int i=0;i<Index;i++)
+			{
+				a.Add(At(i));
+			}
+			for (unsigned int i=Index+1;i<NumElements;i++)
+			{
+				b.Add(At(i));
+			}
+			return true;
+		}
+		return false;
+	}
+
 	// Empty the array
 	void Clear()
 	{
@@ -233,6 +255,11 @@ public:
 		{
 			++Index;
 			return *this;
+		}
+
+		inline Iterator operator+(int I)
+		{
+			return Iterator(pArray, Index+I);
 		}
 	};
 
