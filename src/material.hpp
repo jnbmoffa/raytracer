@@ -18,6 +18,7 @@ public:
   virtual double GetRefIndex() = 0;
   virtual double GetGloss() = 0;
 
+  // Return the colour for a given Hit and incident ray
   virtual Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient) = 0;
 
 protected:

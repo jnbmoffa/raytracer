@@ -25,6 +25,7 @@ inline unsigned int GetNumCores()
 	return std::thread::hardware_concurrency();
 }
 
+// Wrapper around C++11 threads that makes them nicer to use
 class Thread
 {
 	std::thread* ActualThread;
@@ -58,6 +59,7 @@ ThreadType* CreateThread(Args... args)
 	return NewThread;
 }
 
+// The current thread will sleep for the provided number of microseconds
 void SleepMicro(unsigned int Microseconds);
 
 // Used for testing thread features

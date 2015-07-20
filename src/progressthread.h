@@ -2,6 +2,7 @@
 #include "Thread.h"
 #include <iostream>
 
+// Shows a percentage based on the Total and the PROGRESS variable
 class ProgressThread : public Thread
 {
 	double Total;

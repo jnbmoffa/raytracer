@@ -3,6 +3,8 @@
 
 #define INDEX_NONE -1
 
+// Custom dyamic array
+// Provides optimized functionality and more usability than std::vector
 template<typename T>
 class Array
 {

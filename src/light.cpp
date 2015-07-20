@@ -37,6 +37,8 @@ double SphereLight::GetIntensity(SceneContainer* Scene, const Point3D& TestLoc)
   Vector3D v = Normal.cross(u); v.normalize(); v = radius*v;
   int NumVisiblePoints = 0;
   double theta=0.f, RingInc = 1.f/(double)NumRings, AngleInc = (2*M_PI)/(double)RingPoints;
+
+  // Sum up the intensity of the visible points on the light
   for (double i=RingInc;i<1.f;i+=RingInc)
   {
     for (int j=0;j<4;j++)
@@ -46,7 +48,7 @@ double SphereLight::GetIntensity(SceneContainer* Scene, const Point3D& TestLoc)
     }
     theta-=3.f*(AngleInc);
   }
-  return (double)NumVisiblePoints/((double)RingPoints*4);
+  return (double)NumVisiblePoints/((double)RingPoints*NumRings);
 }
 
 std::ostream& operator<<(std::ostream& out, const Light& l)

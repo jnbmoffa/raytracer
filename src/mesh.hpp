@@ -17,8 +17,6 @@ public:
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M);
   
 private:
-	Sphere BoundingSphere;
-
 	std::vector<Point3D> m_verts;
 	std::vector<Face> m_faces;
 

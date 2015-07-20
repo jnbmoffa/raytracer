@@ -27,6 +27,7 @@ PhotonMap::~PhotonMap()
 	}
 }
 
+// Only does caustics
 void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int depth, bool bHasRef)
 {
 	if (depth >= 9) return;
@@ -61,46 +62,48 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 			double R2 = (nt*NdotR - ni*cost)/(nt*NdotR + ni*cost); R2 *= R2;
 			double Reflectance = (R1 + R2)/2.f;
 
+			// Photons don't do glossy reflection
 			Ray ReflectedRay = R.Reflect(Hit, NdotR);
 			TracePhoton(ReflectedRay, Reflectance*Power, depth+1, bHasRef);
 
 			Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
 			TracePhoton(RefractedRay, (1.f-Reflectance)*Power, depth+1, true);
-			// std::cout << "Refract" << std::endl;
 		}
 		else
 		{
 			// Total internal reflection
-			// std::cout << "Reflect" << std::endl;
 			Ray ReflectedRay = R.Reflect(Hit, NdotR);
 			TracePhoton(ReflectedRay, Power, depth+1, bHasRef);
 		}
 	}
 	else if (bHasRef)
 	{
-		// Stick
-		// std::cout << "Stick" << std::endl;
+		// Stick if this trace has refracted at least once
 		Storage.push_back(new Photon(Hit.Location, Power, R.Direction));
 	}
 }
 
 void PhotonMap::BuildTree()
 {
-	std::cout << "Mapping " << NumToEmit * Scene->lights->size() << " photons..." << std::endl;
-	std::shared_ptr<ProgressThread> Status(CreateThread<ProgressThread>((double)NumToEmit * Scene->lights->size()));
-	Storage.reserve(NumToEmit * Scene->lights->size());
-	for (Light* L : *(Scene->lights))
+	if (NumToEmit > 0)
 	{
-		Colour Power = (L->power * L->colour) / NumToEmit;
-		for (unsigned int n=0;n<NumToEmit;n++)
+		std::cout << "Mapping " << NumToEmit * Scene->lights->size() << " photons..." << std::endl;
+		std::shared_ptr<ProgressThread> Status(CreateThread<ProgressThread>((double)NumToEmit * Scene->lights->size()));
+		Storage.reserve(NumToEmit * Scene->lights->size());
+		for (Light* L : *(Scene->lights))
 		{
-			Vector3D Dir(PhotonDistribution(generator), PhotonDistribution(generator), PhotonDistribution(generator)); Dir.normalize();
-			TracePhoton(Ray(L->position, Dir), Power, 0);
-			Status->PROGRESS++;
+			Colour Power = (L->power * L->colour) / NumToEmit;
+			for (unsigned int n=0;n<NumToEmit;n++)
+			{
+				// Random photon directions
+				Vector3D Dir(PhotonDistribution(generator), PhotonDistribution(generator), PhotonDistribution(generator)); Dir.normalize();
+				TracePhoton(Ray(L->position, Dir), Power, 0);
+				Status->PROGRESS++;
+			}
 		}
-	}
 
-	Tree.MakeTree(Storage);
+		Tree.MakeTree(Storage);
+	}
 }
 
 void PhotonMap::LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2)

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cmath>
 
+// Axis-Aliged Bounding-Box (AABB)
+// Optimized for fast intersection tests with rays.
 template<typename T>
 class Box
 {
@@ -107,6 +109,7 @@ public:
 		return abs(data[4] - data[5]);
 	}
 
+	// Point lies inside or on the boundary of the box?
 	inline bool Contains( const Point3D& p )
 	{
 		return p[0] >= data[0] &&
@@ -117,7 +120,6 @@ public:
 				p[2] <= data[4];
 	}
 
-	// Assumes axis aligned
 	// Return if the ray intersects or not (or starts inside of). Optimized.
 	bool Intersects( const Ray& ray )
 	{

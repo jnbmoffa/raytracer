@@ -497,9 +497,9 @@ int gr_render_cmd(lua_State* L)
     lua_pop(L, 1);
   }
 
-  render(root->node, filename, width, height,
-            cam,
-            ambient, lights);
+  int Photons = luaL_checknumber(L, 9);
+
+  render(root->node, filename, width, height, cam, ambient, lights, Photons);
   
   return 0;
 }

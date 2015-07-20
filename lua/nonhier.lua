@@ -287,6 +287,6 @@ orange_light = gr.light(1, {400.0, 100.0, 150.0}, {0.7, 0.0, 0.7}, {1, 0, 0}, 10
 
 camera = gr.pcamera({0, 0, 800}, {0, 0, -1}, {0, 1, 0}, 50)
 
-gr.render(scene_root, 'nonhier.png', 512, 512,
+gr.render(scene_root, '../img/nonhier.png', 512, 512,
 	  camera,
-	  {0.3, 0.3, 0.3}, {orange_light,white_light}, {})
+	  {0.3, 0.3, 0.3}, {orange_light,white_light}, {}, 0)

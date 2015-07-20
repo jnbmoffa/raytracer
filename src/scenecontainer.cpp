@@ -51,7 +51,7 @@ bool SceneContainer::DepthTrace(const Ray& R, double& dist)
   return ContainerSpecificDepthTrace(R, dist);
 }
 
-OctreeSceneContainer::OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights) : SceneContainer(Nodes, lights)
+OctreeSceneContainer::OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights, unsigned int Photons) : SceneContainer(Nodes, lights, Photons)
 {
   std::cout << "Building octree..." << std::endl;
   Tree = OcTree<SceneNode>(GetSceneBounds(*Nodes));

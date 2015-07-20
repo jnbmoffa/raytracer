@@ -18,11 +18,12 @@ struct Camera {
 		, ApertureDistribution(-1.f, 1.f) {}
 
 	virtual void CalcApertureRadius() = 0;
-	virtual inline Point3D GetRandomEye() = 0;
-	virtual inline double GetFocalDist() = 0;
-	virtual inline double GetDOFRays() = 0;
+	virtual Point3D GetRandomEye() = 0;
+	virtual double GetFocalDist() = 0;
+	virtual double GetDOFRays() = 0;
 };
 
+// Point camera with no aperture
 struct PointCamera : public Camera
 {
 	virtual void CalcApertureRadius() override {}
@@ -43,6 +44,7 @@ struct PointCamera : public Camera
 	}
 };
 
+// Simulated camera with a lense and focal disance
 struct LenseCamera : public Camera
 {
 	virtual void CalcApertureRadius() override

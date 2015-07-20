@@ -18,10 +18,14 @@ struct Light {
   Point3D position;
   double falloff[3];
 
+  // Check if the given point is visible from the provided light position
   bool IsVisibleFrom(SceneContainer* Scene, const Point3D& LightLoc, const Point3D& TestLoc);
+
+  // Get the intensity of the light that this is providing to the test location
   virtual double GetIntensity(SceneContainer* Scene, const Point3D& TestLoc);
 };
 
+// Area shpere light
 struct SphereLight : public Light
 {
 	SphereLight() : generator(std::random_device{}()), Distribution(-1.f,1.f) {}

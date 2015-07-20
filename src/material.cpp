@@ -28,13 +28,13 @@ Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std:
 		// Caustics
 		Array<Photon*> Photons;
 		double radius = 2, MaxDist2 = -1;
-		Scene->GetPhotonMap()->LocatePhotons(Photons, Hit.Location, radius*radius, MaxDist2);	// search 5 units around hit
+		Scene->GetPhotonMap()->LocatePhotons(Photons, Hit.Location, radius*radius, MaxDist2);
 		Colour CausticTotal;
 		for (Photon* P : Photons)
 		{
 			CausticTotal = CausticTotal + (-P->IncidentDir).dot(Hit.Normal) * m_kd * P->Power;
 		}
-		if (MaxDist2 > 0) OutCol = OutCol + CausticTotal / (M_PI * MaxDist2); // Colour(1, 0, 1);
+		if (MaxDist2 > 0) OutCol = OutCol + CausticTotal / (M_PI * MaxDist2);
 
 		// Shadows
 		double LightIntensity = L->GetIntensity(Scene, Hit.Location);

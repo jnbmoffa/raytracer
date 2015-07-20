@@ -38,7 +38,8 @@ void render(// What to render
                Camera* cam,
                // Lighting parameters
                const Colour& ambient,
-               const std::list<Light*>& lights
+               const std::list<Light*>& lights,
+               int MappedPhotons
                );
 
 class Image;
@@ -70,15 +71,31 @@ public:
 
      virtual void Main() override;
 
+     virtual Colour TracePixelAntiAliased(int x, int y);
+
      // Do a trace through the pixel at a specific location (center is xNorm=0.5, yNorm=0.5)
      Colour TracePixelNormalized(int x, int y, double xNorm, double yNorm);
      Colour TraceRay(Ray& R, double powerCoef, unsigned int depth);
-     Colour AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth);
 };
 
-class SuperSampleThread
+class SuperSampleThread : public RenderThread
 {
-     
+     int SuperSamples;
+public:
+     SuperSampleThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights, int SuperSamples) :
+          RenderThread(Scene, img, Params, Cam, ambient, lights), SuperSamples(SuperSamples) {}
+
+     virtual Colour TracePixelAntiAliased(int x, int y) override;
+};
+
+class AdaptiveSampleThread : public RenderThread
+{
+public:
+     AdaptiveSampleThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights) :
+          RenderThread(Scene, img, Params, Cam, ambient, lights) {}
+
+     virtual Colour TracePixelAntiAliased(int x, int y) override;
+     Colour AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth);
 };
 
 #endif

@@ -122,10 +122,58 @@ BALL:scale(10, 10, 10)
 BALL:set_material(red)
 root:add_child(BALL)
 
-white_light = gr.light({0.0, 0.0, 50.0}, {1, 1, 1}, {1, 0, 0})
+BALL = gr.sphere('BALL200000')
+BALL:translate(-2048, -2048, -2048)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
 
-camera = gr.camera({0, 0, 5000}, {0, 0, -1}, {0, 1, 0}, 50, 2, 4000)
+BALL = gr.sphere('BALL200000')
+BALL:translate(2048, -2048, -2048)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
 
-gr.render(root, 'octree.png', 1024, 1024,
+BALL = gr.sphere('BALL200000')
+BALL:translate(-2048, 2048, -2048)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
+
+BALL = gr.sphere('BALL200000')
+BALL:translate(2048, 2048, -2048)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
+
+BALL = gr.sphere('BALL200000')
+BALL:translate(-2560, -2560, -2560)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
+
+BALL = gr.sphere('BALL200000')
+BALL:translate(2560, -2560, -2560)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
+
+BALL = gr.sphere('BALL200000')
+BALL:translate(-2560, 2560, -2560)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
+
+BALL = gr.sphere('BALL200000')
+BALL:translate(2560, 2560, -2560)
+BALL:scale(10, 10, 10)
+BALL:set_material(red)
+root:add_child(BALL)
+
+white_light = gr.light(1, {0.0, 0.0, 50.0}, {1, 1, 1}, {1, 0, 0})
+
+camera = gr.pcamera({0, 0, 5000}, {0, 0, -1}, {0, 1, 0}, 50, 2, 4000)
+
+gr.render(root, '../img/octree.png', 1024, 1024,
 	  camera,
-	  {0.3, 0.3, 0.3}, {white_light}, {})
+	  {0.3, 0.3, 0.3}, {white_light}, {}, 0)

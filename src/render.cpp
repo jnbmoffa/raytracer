@@ -8,8 +8,8 @@
 atomic_int PROGRESS(0);
 
 // TODO: get rid of all globals
-double yDiv = 1.f, xDiv = 1.f;
-int SuperSamples = 1;
+double yDiv = 1.f, xDiv = 1.f;  // threads
+int SuperSamples = 1; // AA
 bool bUseOctree = false, bUseAdaptive = false;
 
 void render(// What to render
@@ -22,7 +22,8 @@ void render(// What to render
                Camera* cam,
                // Lighting parameters
                const Colour& ambient,
-               const std::list<Light*>& lights
+               const std::list<Light*>& lights,
+               int MappedPhotons
                )
 {
   // Nice-to-have output
@@ -44,11 +45,11 @@ void render(// What to render
   SceneContainer* Scene;
   if (bUseOctree)
   {
-     Scene = new OctreeSceneContainer(&List, &lights);
+     Scene = new OctreeSceneContainer(&List, &lights, MappedPhotons);
   }
   else
   {
-    Scene = new SceneContainer(&List, &lights);
+    Scene = new SceneContainer(&List, &lights, MappedPhotons);
   }
   Scene->MapPhotons();
 
@@ -87,7 +88,9 @@ void render(// What to render
       Params.yMin = y; Params.yMax = endY;
       Params.xMin = x; Params.xMax = endX;
 
-      threads[i++] = CreateThread<RenderThread> (Scene, &img, Params, cam, ambient, &lights);
+      if (bUseAdaptive) threads[i++] = CreateThread<AdaptiveSampleThread> (Scene, &img, Params, cam, ambient, &lights);
+      else if (SuperSamples > 1) threads[i++] = CreateThread<SuperSampleThread> (Scene, &img, Params, cam, ambient, &lights, SuperSamples);
+      else threads[i++] = CreateThread<RenderThread> (Scene, &img, Params, cam, ambient, &lights);
     }
   }
   
@@ -117,39 +120,7 @@ void RenderThread::Main()
       for (int d=0;d<NormCam->GetDOFRays();d++)
       {
         RandomEyePoint = NormCam->GetRandomEye();
-
-        // TODO: Find a better way to do this without global variables
-        if (SuperSamples > 1)
-        {
-          // Equally distributed super-samples (grid)
-          Colour SuperTotal;
-          double numRays = (double)SuperSamples*SuperSamples;
-          Colour Cols[(int)numRays];
-          double halfSubWidth = 1.f/((double)SuperSamples*2.f); int index = 0;
-          for (double i=halfSubWidth;i<1;i+=halfSubWidth*2)
-          {
-            for (double j=halfSubWidth;j<1;j+=halfSubWidth*2)
-            {
-              Cols[index++] = TracePixelNormalized(x, y, i, j);
-            }
-          }
-
-          for (int i=0;i<(int)numRays;i++)
-          {
-            SuperTotal  = SuperTotal + Cols[i];
-          }
-          SuperTotal = SuperTotal / numRays;
-          Total = Total + SuperTotal;
-        }
-        else if (bUseAdaptive)
-        {
-          Total = Total + AdaptiveSuperSample(x, y, 0.f, 1.f, 0.f, 1.f, 0);
-        }
-        else
-        {
-          // No Anti-aliasing - trace center
-          Total = Total + TracePixelNormalized(x, y, 0.5f, 0.5f);
-        }
+        Total = TracePixelAntiAliased(x, y);
       }
 
       // Average DOF ray colour
@@ -161,6 +132,11 @@ void RenderThread::Main()
     }
     PROGRESS++;
   }
+}
+
+inline Colour RenderThread::TracePixelAntiAliased(int x, int y)
+{
+  return TracePixelNormalized(x, y, 0.5f, 0.5f);
 }
 
 Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNorm)
@@ -265,7 +241,34 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
   }
 }
 
-Colour RenderThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth)
+Colour SuperSampleThread::TracePixelAntiAliased(int x, int y)
+{
+  // Equally distributed super-samples (grid)
+  Colour SuperTotal;
+  double numRays = (double)SuperSamples*SuperSamples;
+  Colour Cols[(int)numRays];
+  double halfSubWidth = 1.f/((double)SuperSamples*2.f); int index = 0;
+  for (double i=halfSubWidth;i<1;i+=halfSubWidth*2)
+  {
+    for (double j=halfSubWidth;j<1;j+=halfSubWidth*2)
+    {
+      Cols[index++] = TracePixelNormalized(x, y, i, j);
+    }
+  }
+
+  for (int i=0;i<(int)numRays;i++)
+  {
+    SuperTotal  = SuperTotal + Cols[i];
+  }
+  return SuperTotal / numRays;
+}
+
+inline Colour AdaptiveSampleThread::TracePixelAntiAliased(int x, int y)
+{
+  return AdaptiveSuperSample(x, y, 0.f, 1.f, 0.f, 1.f, 0);
+}
+
+Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth)
 {
   Colour Cols[4];
   double QuartX = (xNormMax - xNormMin)/4.f;

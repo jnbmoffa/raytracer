@@ -8,6 +8,8 @@
 class SceneNode;
 class Light;
 
+// Holds all of the scene objects and provides trace functions against them
+// Allows for subclasses to optimize traces using bounding volumes/octrees/etc.
 class SceneContainer
 {
 protected:
@@ -19,7 +21,7 @@ protected:
 public:
 	const std::list<Light*>* lights;
 	virtual ~SceneContainer() {}
-	SceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights) : Nodes(Nodes), PMap(this, 500000), lights(lights) {}
+	SceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights, unsigned int Photons) : Nodes(Nodes), PMap(this, Photons), lights(lights) {}
 
 	// Init
 	void MapPhotons();
@@ -41,5 +43,5 @@ protected:
 
 public:
  	virtual ~OctreeSceneContainer() {}
- 	OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights);
+ 	OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights, unsigned int Photons);
 };

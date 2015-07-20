@@ -7,16 +7,16 @@ class OcTreeObject
 {
 public:
 	virtual ~OcTreeObject() {}
-	// Every quad tree object needs to have a bouding box
+	// Every octree object needs to have a bouding box
 	virtual BoxF GetBox() = 0;
 };
 
-// Quad tree implementation that holds OctObjectType objects inside of it
+// OcTree implementation that holds OctObjectType objects inside of it
 // OctObjectType must be a subclass of OcTreeObject
 template<typename OctObjectType = OcTreeObject>
 class OcTree
 {
-	int level;				// Depth in quad tree structure
+	int level;				// Depth in octree structure
 	BoxF Bounds;			// Bounds of this tree
 	Array<OctObjectType*> objects;	// objects in this tree
 	Array<OcTree*> nodes;	// regions
@@ -34,8 +34,6 @@ class OcTree
 		float bo = Bounds.GetBottom();
 		float f = Bounds.GetFront();
 		float ba = Bounds.GetBack();
-
-		// std::cout << level << std::endl;
 
 		// top left front = 0
 		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, f, f - halfDepth)));
@@ -56,7 +54,8 @@ class OcTree
 		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, ba + halfDepth, ba)));
 	}
 
-	// Return index of region the box fits into
+	// Return index of the cube the box fits into
+	// -1 means it doesn't fit nicely into a child
 	int GetIndex(const BoxF& pBox)
 	{
 		int index = -1;
@@ -157,6 +156,7 @@ public:
 	{
 		BoxF pBox = Object->GetBox();
 
+		// Have children? Try to put it in one of them
 		if (nodes.Num() > 0){
 			int index = GetIndex(pBox);
 
@@ -166,8 +166,10 @@ public:
 			}
 		}
 
+		// Put it in me
 		objects.Add(Object);
 
+		// Full? split and try to distribute objects into children
 		if (objects.Num() > MAX_OBJECTS && level < MAX_LEVELS)
 		{
 			if (nodes.Num() == 0)

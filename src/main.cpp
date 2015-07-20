@@ -13,10 +13,10 @@ int main(int argc, char** argv)
   int c;
   while ((c = getopt(argc, argv, ":t:s:oa")) != -1) {
     switch(c) {
-    case 't':
+    case 't': // number of render threads
       xDiv = yDiv = atoi(optarg);
       break;
-    case 's':
+    case 's': // supersampling
       SuperSamples = atoi(optarg);
       if (bUseAdaptive)
       {
@@ -24,10 +24,10 @@ int main(int argc, char** argv)
         return 1;
       }
       break;
-    case 'o':
+    case 'o': // use Octree
       bUseOctree = true;
       break;
-    case 'a':
+    case 'a': // Adaptive AA
       bUseAdaptive = true;
       if (SuperSamples > 1)
       {

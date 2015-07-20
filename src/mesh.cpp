@@ -4,8 +4,7 @@
 
 Mesh::Mesh(const std::vector<Point3D>& verts,
            const std::vector< std::vector<int> >& faces)
-  : BoundingSphere(Point3D(0, 0, 0), 0),
-    m_verts(verts),
+  : m_verts(verts),
     m_faces(faces)
 {
   double MaxX, MaxY, MaxZ, MinX, MinY, MinZ;
@@ -25,8 +24,6 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
   double radius = std::max(std::abs(center[0]-MaxX), std::max(std::abs(center[0]-MinX),
                   std::max(std::abs(center[1]-MaxY), std::max(std::abs(center[1]-MinY),
                   std::max(std::abs(center[2]-MaxZ), std::abs(center[2]-MinZ))))));
-  // std::cout << radius << "," << center << std::endl;
-  BoundingSphere = Sphere(center, radius);
   Bounds = BoxF(center[0] - radius, center[0]+radius, center[1]+radius, center[1]-radius, center[2]+radius, center[2]-radius);
 }
 
