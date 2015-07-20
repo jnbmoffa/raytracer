@@ -11,23 +11,29 @@ int main(int argc, char** argv)
   }
 
   int c;
-  while ((c = getopt(argc, argv, ":t:s:od:a")) != -1) {
+  while ((c = getopt(argc, argv, ":t:s:oa")) != -1) {
     switch(c) {
     case 't':
       xDiv = yDiv = atoi(optarg);
       break;
     case 's':
       SuperSamples = atoi(optarg);
+      if (bUseAdaptive)
+      {
+        std::cerr << "Can only use one type of anti-aliasing" << std::endl;
+        return 1;
+      }
       break;
     case 'o':
       bUseOctree = true;
       break;
-    case 'd':
-      bUseDOF = true;
-      DOFRays = atoi(optarg);
-      break;
     case 'a':
       bUseAdaptive = true;
+      if (SuperSamples > 1)
+      {
+        std::cerr << "Can only use one type of anti-aliasing" << std::endl;
+        return 1;
+      }
       break;
     case ':':
       fprintf(stderr,

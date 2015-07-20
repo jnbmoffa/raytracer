@@ -361,7 +361,7 @@ int gr_light_cmd(lua_State* L)
   return 1;
 }
 
-// Make aarea point light
+// Make area point light
 extern "C"
 int gr_alight_cmd(lua_State* L)
 {
@@ -393,14 +393,41 @@ int gr_alight_cmd(lua_State* L)
 
 // Make a camera
 extern "C"
-int gr_camera_cmd(lua_State* L)
+int gr_pcamera_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
 
   gr_camera_ud* data = (gr_camera_ud*)lua_newuserdata(L, sizeof(gr_camera_ud));
   data->camera = 0;
   
-  Camera c;
+  PointCamera c;
+
+  get_tuple(L, 1, &(c.eye[0]), 3);
+  get_tuple(L, 2, &(c.view[0]), 3);
+  get_tuple(L, 3, &(c.up[0]), 3);
+  c.fov = luaL_checknumber(L, 4);
+  c.ApertureRadius = 0;
+  c.FocalDistance = 0;
+  c.DOFRays = 1;
+  
+  data->camera = new PointCamera(c);
+
+  luaL_newmetatable(L, "gr.camera");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Make a camera
+extern "C"
+int gr_lcamera_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+
+  gr_camera_ud* data = (gr_camera_ud*)lua_newuserdata(L, sizeof(gr_camera_ud));
+  data->camera = 0;
+  
+  LenseCamera c;
 
   get_tuple(L, 1, &(c.eye[0]), 3);
   get_tuple(L, 2, &(c.view[0]), 3);
@@ -408,8 +435,9 @@ int gr_camera_cmd(lua_State* L)
   c.fov = luaL_checknumber(L, 4);
   c.ApertureRadius = luaL_checknumber(L, 5);
   c.FocalDistance = luaL_checknumber(L, 6);
+  c.DOFRays = luaL_checknumber(L, 7);
   
-  data->camera = new Camera(c);
+  data->camera = new LenseCamera(c);
 
   luaL_newmetatable(L, "gr.camera");
   lua_setmetatable(L, -2);
@@ -684,7 +712,8 @@ static const luaL_reg grlib_functions[] = {
   {"mesh", gr_mesh_cmd},
   {"light", gr_light_cmd},
   {"alight", gr_alight_cmd},
-  {"camera", gr_camera_cmd},
+  {"pcamera", gr_pcamera_cmd},
+  {"lcamera", gr_lcamera_cmd},
   {"render", gr_render_cmd},
   {0, 0}
 };

@@ -285,7 +285,7 @@ scene_root:add_child(steldodec)
 white_light = gr.light(1, {-100.0, 150.0, 400.0}, {0.9, 0.9, 0.9}, {1, 0, 0}, 20, 4, 4)
 orange_light = gr.light(1, {400.0, 100.0, 150.0}, {0.7, 0.0, 0.7}, {1, 0, 0}, 10)
 
-camera = gr.camera({0, 0, 800}, {0, 0, -1}, {0, 1, 0}, 50, 2, 800)
+camera = gr.pcamera({0, 0, 800}, {0, 0, -1}, {0, 1, 0}, 50)
 
 gr.render(scene_root, 'nonhier.png', 512, 512,
 	  camera,

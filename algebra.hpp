@@ -655,7 +655,7 @@ private:
 
 inline bool operator ==(const Colour& a, const Colour& b)
 {
-  return IsNearly(a.R(), b.R(), 0.01) && IsNearly(a.G(), b.G(), 0.01) && IsNearly(a.B(), b.B(), 0.01);
+  return IsNearly(a.R(), b.R(), 0.05) && IsNearly(a.G(), b.G(), 0.05) && IsNearly(a.B(), b.B(), 0.05);
 }
 
 inline bool operator !=(const Colour& a, const Colour& b)

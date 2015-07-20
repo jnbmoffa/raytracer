@@ -57,14 +57,14 @@ root:add_child(BALL)
 
 BALL = gr.cylinder('BALL')
 BALL:translate(-7, 8, 0)
-wall1:rotate('x', 10)
+wall1:rotate('x', 90)
 BALL:scale(5, 5, 5)
 BALL:set_material(rblue)
 root:add_child(BALL)
 
 white_light = gr.alight(12000, {0.0, 25.0, 0.0}, {1, 1, 1}, {1, 0, 0}, 4, 4, 4)
 
-camera = gr.camera({0, 15, 40}, {0, 0, -1}, {0, 1, 0}, 50, 0.1, 40)
+camera = gr.pcamera({0, 15, 40}, {0, 0, -1}, {0, 1, 0}, 50)
 
 gr.render(root, 'final.png', 1024, 1024,
 	  camera,

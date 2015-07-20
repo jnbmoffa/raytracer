@@ -27,7 +27,6 @@ PhotonMap::~PhotonMap()
 	}
 }
 
-// Only does caustics, make different to do global illumination as well
 void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int depth, bool bHasRef)
 {
 	if (depth >= 9) return;
@@ -101,9 +100,7 @@ void PhotonMap::BuildTree()
 		}
 	}
 
-	// std::cout << "Stored Photons:" <<  Storage.size() << std::endl;
 	Tree.MakeTree(Storage);
-	// std::cout << "Actualy stored Photons:" <<  Tree.CountNodes() << std::endl;
 }
 
 void PhotonMap::LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2)

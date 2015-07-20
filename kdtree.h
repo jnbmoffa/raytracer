@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <vector>
 
+// The base class of any object to be stored in the KDTree
 class KDObject
 {
 public:
@@ -12,6 +13,7 @@ public:
 	virtual double operator[](unsigned int Index) const = 0;
 };
 
+// Comparison function for finding the median for KDTree building
 template<typename T>
 class AxisCompare
 {
@@ -21,10 +23,16 @@ public:
 	AxisCompare(unsigned int Index) : Index(Index) {}
 	bool operator()(const T* a, const T* b) const
 	{
+		// Compare only the index associted with the level of the tree
 		return (*a)[Index] < (*b)[Index];
 	}
 };
 
+// General KDTree
+// Only implements the required functionality for photon mapping.
+// Most of the concepts were taken from these papers:
+// http://www.cs.cmu.edu/afs/cs/academic/class/15462-f14/www/lec_slides/a1-jensen.pdf
+// Multidimensional Binary Search Trees Used for Associative Searching, Jon Louis Bently, Stanford, 1975
 template<typename KDType = KDObject>
 class KDTree
 {
@@ -40,6 +48,8 @@ class KDTree
 			return 1 + (Left ? Left->CountNodes() : 0) + (Right ? Right->CountNodes() : 0);
 		}
 
+		// Find all KDType elements within SearchDistSq square units from the CheckLoc
+		// MaxDist2 will be the square dist to the furthest away KDType element returned
 		void LocateNearby(Array<KDType*>& OutArray, const KDType& CheckLoc, const double& SearchDistSq, double& MaxDist2, int depth = 0)
 		{
 			int axis = depth % K;
@@ -80,6 +90,8 @@ class KDTree
 		Node *Left, *Right;
 	} *Root;
 
+	// Inserion into KDTree from array adapted from Wikipedia
+	// Split the array on the median, storing it in the current node and recursing on the other halves of the array
 	Node* Internal_MakeTree(std::vector<KDType*>& List, int depth)
 	{
 		if (List.size() == 0) return nullptr;
@@ -101,8 +113,11 @@ class KDTree
 	}
 
 public:
+	// Iintialize to K dimensions
 	KDTree(unsigned int K) : K(K), Root(nullptr) {}
 
+	// Inserion into KDTree from array adapted from Wikipedia
+	// Split the array on the median, storing it in the current node and recursing on the other halves of the array
 	void MakeTree(std::vector<KDType*>& List)
 	{
 		if (List.size() == 0) return;
@@ -125,6 +140,8 @@ public:
 		return 0;
 	}
 
+	// Find all KDType elements within SearchDistSq square units from the CheckLoc
+	// MaxDist2 will be the square dist to the furthest away KDType element returned
 	void LocateNearby(Array<KDType*>& OutArray, const KDType& CheckLoc, const double& SearchDistSq, double& MaxDist2)
 	{
 		if(Root) Root->LocateNearby(OutArray, CheckLoc, SearchDistSq, MaxDist2);
