@@ -39,7 +39,9 @@ void render(// What to render
                // Lighting parameters
                const Colour& ambient,
                const std::list<Light*>& lights,
-               int MappedPhotons
+               int MappedPhotons,
+               // Time stepping
+               double TimeDuration, int TimeSteps
                );
 
 class Image;
@@ -61,41 +63,47 @@ protected:
      std::default_random_engine generator;
      std::uniform_real_distribution<double> RefrDistribution;
 
+     double TimeDuration;
+     int TimeSteps;
+
 public:
-     RenderThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights) :
+     RenderThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights, double TimeDuration,
+               int TimeSteps) :
                Scene(Scene), img(img), Params(Params), NormCam(Cam), ambient(ambient), lights(lights), generator(std::random_device{}()),
-               RefrDistribution(0.f,1.f)
+               RefrDistribution(0.f,1.f), TimeDuration(TimeDuration), TimeSteps(TimeSteps)
                {
                     RandomEyePoint = Cam->eye;
                }
 
      virtual void Main() override;
 
-     virtual Colour TracePixelAntiAliased(int x, int y);
+     virtual Colour TracePixelAntiAliased(int x, int y, const double& Time);
 
      // Do a trace through the pixel at a specific location (center is xNorm=0.5, yNorm=0.5)
-     Colour TracePixelNormalized(int x, int y, double xNorm, double yNorm);
-     Colour TraceRay(Ray& R, double powerCoef, unsigned int depth);
+     Colour TracePixelNormalized(int x, int y, double xNorm, double yNorm, const double& Time);
+     Colour TraceRay(Ray& R, double powerCoef, unsigned int depth, const double& Time);
 };
 
 class SuperSampleThread : public RenderThread
 {
      int SuperSamples;
 public:
-     SuperSampleThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights, int SuperSamples) :
-          RenderThread(Scene, img, Params, Cam, ambient, lights), SuperSamples(SuperSamples) {}
+     SuperSampleThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights, double TimeDuration,
+          int TimeSteps, int SuperSamples) :
+          RenderThread(Scene, img, Params, Cam, ambient, lights, TimeDuration, TimeSteps), SuperSamples(SuperSamples) {}
 
-     virtual Colour TracePixelAntiAliased(int x, int y) override;
+     virtual Colour TracePixelAntiAliased(int x, int y, const double& Time) override;
 };
 
 class AdaptiveSampleThread : public RenderThread
 {
 public:
-     AdaptiveSampleThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights) :
-          RenderThread(Scene, img, Params, Cam, ambient, lights) {}
+     AdaptiveSampleThread(SceneContainer* Scene, Image* img, RenderPlaneParams Params, Camera* Cam, const Colour& ambient, const std::list<Light*>* lights, double TimeDuration,
+          int TimeSteps) :
+          RenderThread(Scene, img, Params, Cam, ambient, lights, TimeDuration, TimeSteps) {}
 
-     virtual Colour TracePixelAntiAliased(int x, int y) override;
-     Colour AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth);
+     virtual Colour TracePixelAntiAliased(int x, int y, const double& Time) override;
+     Colour AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth, const double& Time);
 };
 
 #endif

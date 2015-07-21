@@ -23,7 +23,9 @@ void render(// What to render
                // Lighting parameters
                const Colour& ambient,
                const std::list<Light*>& lights,
-               int MappedPhotons
+               int MappedPhotons,
+               // Time stepping
+               double TimeDuration, int TimeSteps
                )
 {
   // Nice-to-have output
@@ -88,9 +90,9 @@ void render(// What to render
       Params.yMin = y; Params.yMax = endY;
       Params.xMin = x; Params.xMax = endX;
 
-      if (bUseAdaptive) threads[i++] = CreateThread<AdaptiveSampleThread> (Scene, &img, Params, cam, ambient, &lights);
-      else if (SuperSamples > 1) threads[i++] = CreateThread<SuperSampleThread> (Scene, &img, Params, cam, ambient, &lights, SuperSamples);
-      else threads[i++] = CreateThread<RenderThread> (Scene, &img, Params, cam, ambient, &lights);
+      if (bUseAdaptive) threads[i++] = CreateThread<AdaptiveSampleThread> (Scene, &img, Params, cam, ambient, &lights, TimeDuration, TimeSteps);
+      else if (SuperSamples > 1) threads[i++] = CreateThread<SuperSampleThread> (Scene, &img, Params, cam, ambient, &lights, TimeDuration, TimeSteps, SuperSamples);
+      else threads[i++] = CreateThread<RenderThread> (Scene, &img, Params, cam, ambient, &lights, TimeDuration, TimeSteps);
     }
   }
   
@@ -117,14 +119,23 @@ void RenderThread::Main()
     for (int x=Params.xMin;x<Params.xMax;x++)
     {
       Colour Total;
-      for (int d=0;d<NormCam->GetDOFRays();d++)
+      for (int t=0;t<TimeSteps;t++)
       {
-        RandomEyePoint = NormCam->GetRandomEye();
-        Total = TracePixelAntiAliased(x, y);
+        double Time  = TimeDuration*((double)t/(double)TimeSteps);
+        // std::cout <<  Time << std::endl;
+        Colour DOFTotal;
+        for (int d=0;d<NormCam->GetDOFRays();d++)
+        {
+          RandomEyePoint = NormCam->GetRandomEye();
+          DOFTotal = DOFTotal + TracePixelAntiAliased(x, y, Time);
+        }
+        // Average DOF ray colour
+        Total = Total + DOFTotal / NormCam->GetDOFRays();
+        // std::cout <<  DOFTotal << std::endl;
       }
 
-      // Average DOF ray colour
-      Total = Total / NormCam->GetDOFRays();
+      // std::cout <<  TimeSteps << std::endl;
+      Total = Total / TimeSteps;
 
       (*img)(x, y, 0) = Total.R();
       (*img)(x, y, 1) = Total.G();
@@ -134,12 +145,13 @@ void RenderThread::Main()
   }
 }
 
-inline Colour RenderThread::TracePixelAntiAliased(int x, int y)
+inline Colour RenderThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
-  return TracePixelNormalized(x, y, 0.5f, 0.5f);
+  // std::cout <<  "Trace" << std::endl;
+  return TracePixelNormalized(x, y, 0.5f, 0.5f, Time);
 }
 
-Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNorm)
+Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNorm, const double& Time)
 {
   // Determine the location on the render plane to fire the ray through
   // xNorm == 0 && yNorm == 0 -> bottom left of pixel (x,y)
@@ -151,16 +163,16 @@ Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNo
 
   Vector3D RayDir = ViewPlanePoint - RandomEyePoint; RayDir.normalize();
   Ray CurRay(RandomEyePoint, RayDir);
-  return TraceRay(CurRay, 1.f, 0);
+  return TraceRay(CurRay, 1.f, 0, Time);
 }
 
-Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
+Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, const double& Time)
 {
   if (powerCoef <= 0.05 || depth >= 9) return Colour();
 
   Colour TraceColour(0, 0, 0);
   HitInfo Hit;
-  if (!Scene->RayTrace(TraceColour, R, Hit, ambient)) return Colour();
+  if (!Scene->TimeRayTrace(TraceColour, R, Hit, ambient, Time)) return Colour();
 
   // Refraction enabled?
   if (Hit.Mat->GetRef())
@@ -201,7 +213,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
 
         // TODO: remove magic number 4
         Colour TotalGloss;
-        for (int i=0;i<4;i++)
+        for (int i=0;i<8;i++)
         {
           double theta = acos(pow((1.f - RefrDistribution(generator)), 1.f/(Hit.Mat->GetGloss()+1.f)));
           double phi = 2.f * M_PI * RefrDistribution(generator);
@@ -211,19 +223,19 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
           // Perturb ray
           GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
           GlossRay.Direction.normalize();
-          TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, depth + 1);
+          TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, depth + 1, Time);
         }
-        reflCol = TotalGloss / 4.f;
+        reflCol = TotalGloss / 8.f;
       }
       else
       {
-        reflCol = TraceRay(ReflectedRay, powerCoef * Reflectance, depth + 1);
+        reflCol = TraceRay(ReflectedRay, powerCoef * Reflectance, depth + 1, Time);
       }
 
       // Refracted ray creation
       Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
       double refrCoef = powerCoef * (1.f - Reflectance);
-      Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, depth + 1);
+      Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, depth + 1, Time);
 
       return reflCol + refrCol;
     }
@@ -231,7 +243,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
     {
       // Total Internal Reflection
       Ray ReflectedRay = R.Reflect(Hit, (-R.Direction).dot(Hit.Normal));
-      return TraceRay(ReflectedRay, powerCoef, depth + 1);
+      return TraceRay(ReflectedRay, powerCoef, depth + 1, Time);
     }
   }
   else
@@ -241,7 +253,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth)
   }
 }
 
-Colour SuperSampleThread::TracePixelAntiAliased(int x, int y)
+Colour SuperSampleThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
   // Equally distributed super-samples (grid)
   Colour SuperTotal;
@@ -252,7 +264,7 @@ Colour SuperSampleThread::TracePixelAntiAliased(int x, int y)
   {
     for (double j=halfSubWidth;j<1;j+=halfSubWidth*2)
     {
-      Cols[index++] = TracePixelNormalized(x, y, i, j);
+      Cols[index++] = TracePixelNormalized(x, y, i, j, Time);
     }
   }
 
@@ -263,20 +275,20 @@ Colour SuperSampleThread::TracePixelAntiAliased(int x, int y)
   return SuperTotal / numRays;
 }
 
-inline Colour AdaptiveSampleThread::TracePixelAntiAliased(int x, int y)
+inline Colour AdaptiveSampleThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
-  return AdaptiveSuperSample(x, y, 0.f, 1.f, 0.f, 1.f, 0);
+  return AdaptiveSuperSample(x, y, 0.f, 1.f, 0.f, 1.f, 0, Time);
 }
 
-Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth)
+Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth, const double& Time)
 {
   Colour Cols[4];
   double QuartX = (xNormMax - xNormMin)/4.f;
   double QuartY = (yNormMax - yNormMin)/4.f;
-  Cols[0] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMin + QuartY);
-  Cols[1] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMax - QuartY);
-  Cols[2] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMin + QuartY);
-  Cols[3] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMax - QuartY);
+  Cols[0] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMin + QuartY, Time);
+  Cols[1] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMax - QuartY, Time);
+  Cols[2] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMin + QuartY, Time);
+  Cols[3] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMax - QuartY, Time);
   Colour Total = Cols[0] + Cols[1] + Cols[2] + Cols[3];
 
   // Not the same colours - recurse
@@ -284,10 +296,10 @@ Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, 
   {
     double HalfX = QuartX*2, HalfY = QuartY*2;
     unsigned int newDepth = depth+1;
-    Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth) +
-                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth) +
-                    AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth) +
-                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth);
+    Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth, Time) +
+                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth, Time) +
+                    AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth, Time) +
+                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);
     Total = Total / 8.f;
   }
   // Same colours or too deep

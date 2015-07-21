@@ -16,6 +16,7 @@ public:
   virtual bool SimpleTrace(Ray R);
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
   virtual bool ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
+  virtual bool TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M, const double& Time);
 
   virtual void FlattenScene(Array<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
 
@@ -92,15 +93,16 @@ protected:
 
 class GeometryNode : public SceneNode, OcTreeObject {
 public:
-  GeometryNode(const std::string& name, Primitive* primitive);
-  GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M = Matrix4x4());
+  GeometryNode(const std::string& name, Primitive* primitive, Vector3D Velocity = Vector3D());
+  GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M = Matrix4x4(), Vector3D Velocity = Vector3D());
   virtual ~GeometryNode();
 
   virtual void FlattenScene(Array<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
 
-  virtual bool SimpleTrace(Ray R);
-  virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
-  virtual bool ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
+  virtual bool SimpleTrace(Ray R) override;
+  virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M) override;
+  virtual bool ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M) override;
+  virtual bool TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M, const double& Time) override;
 
   const Material* get_material() const;
   Material* get_material();
@@ -113,6 +115,9 @@ public:
   }
 
 protected:
+  // Linear veloctiy for motion blur (units/second)
+  Vector3D Velocity;
+
   Material* m_material;
   Primitive* m_primitive;
 };

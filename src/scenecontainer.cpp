@@ -1,6 +1,17 @@
 #include "scenecontainer.h"
 #include "scene.hpp"
 
+bool SceneContainer::ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time)
+{
+  double closestDist = 10000000.f; Matrix4x4 M;
+  bool bHit = false;
+  for (SceneNode* S : *Nodes)
+  {
+    if(S->TimeTrace(R, closestDist, Hit, M, Time)) bHit = true;
+  }
+  return bHit;
+}
+
 bool SceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit)
 {
   double closestDist = 10000000.f; Matrix4x4 M;
@@ -29,13 +40,25 @@ void SceneContainer::MapPhotons()
   PMap.BuildTree();
 }
 
+bool SceneContainer::TimeRayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient, const double& Time)
+{
+  if (ContainerSpecificTimeTrace(R, Hit, Time))
+  {
+    Hit.Normal.normalize();
+
+    OutCol = Hit.Mat->DoLighting(this, R, lights, Hit, ambient, Time);
+    return true;
+  }
+  return false;
+}
+
 bool SceneContainer::RayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient)
 {
   if (ContainerSpecificColourTrace(R, Hit))
   {
     Hit.Normal.normalize();
 
-    OutCol = Hit.Mat->DoLighting(this, R, lights, Hit, ambient);
+    OutCol = Hit.Mat->DoLighting(this, R, lights, Hit, ambient, 0);
     return true;
   }
   return false;
@@ -44,6 +67,14 @@ bool SceneContainer::RayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const 
 bool SceneContainer::PhotonTrace(const Ray& R, HitInfo& Hit)
 {
   return ContainerSpecificColourTrace(R, Hit);
+}
+
+bool SceneContainer::TimeDepthTrace(const Ray& R, double& dist, const double& Time)
+{
+  HitInfo Hit;
+  bool bHit = ContainerSpecificTimeTrace(R, Hit, Time);
+  dist = (Hit.Location - R.Start).length();
+  return bHit;
 }
 
 bool SceneContainer::DepthTrace(const Ray& R, double& dist)
@@ -59,6 +90,19 @@ OctreeSceneContainer::OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::
   {
     Tree.Insert(s);
   }
+}
+
+bool OctreeSceneContainer::ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time)
+{
+  double closestDist = 10000000.f; Matrix4x4 M;
+  bool bHit = false;
+  Array<SceneNode*> OctList;
+  Tree.Trace(OctList, R);
+  for (SceneNode* S : OctList)
+  {
+    if(S->TimeTrace(R, closestDist, Hit, M, Time)) bHit = true;
+  }
+  return bHit;
 }
 
 bool OctreeSceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit)

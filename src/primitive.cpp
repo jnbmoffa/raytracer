@@ -200,62 +200,65 @@ Cone::~Cone()
 bool Cone::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M)
 {
 	R.Direction.normalize();
-	double XD = R.Direction[0], YD = R.Direction[1], ZD = R.Direction[2],
-		   XE = R.Start[0], YE = R.Start[1], ZE = R.Start[2], roots[2];
-	size_t numRoots = quadraticRoots(XD*XD + YD*YD - ZD*ZD, 2*XE*XD + 2*YE*YD - 2*ZE*ZD, XE*XE + YE*YE - ZE*ZE, roots);
-	if (numRoots > 0)
-	{
-		std::vector<Point3D> Hits(3);
-		std::vector<Vector3D> Normals(3);
-		Vector3D rayVec = R.Direction;
+	if (Bounds.Intersects(R))
+  	{
+		double XD = R.Direction[0], YD = R.Direction[1], ZD = R.Direction[2],
+			   XE = R.Start[0], YE = R.Start[1], ZE = R.Start[2], roots[2];
+		size_t numRoots = quadraticRoots(XD*XD + YD*YD - ZD*ZD, 2*XE*XD + 2*YE*YD - 2*ZE*ZD, XE*XE + YE*YE - ZE*ZE, roots);
+		if (numRoots > 0)
+		{
+			std::vector<Point3D> Hits;		// do not use reserve
+			std::vector<Vector3D> Normals;	// do not use reserve
+			Vector3D rayVec = R.Direction;
 
-		// Find cone hit
-		Point3D hitLoc = R.Start + roots[0] * rayVec;
-		if (hitLoc[2] > -0.0005f && hitLoc[2] < 1.0005f) 
-		{
-			Hits.push_back(hitLoc);
-			Normals.push_back(Vector3D(2*hitLoc[0], 2*hitLoc[1], -2*hitLoc[2]));
-		}
-		if (numRoots == 2)
-		{
-			hitLoc = R.Start + roots[1] * rayVec;
-			if (hitLoc[2] > -0.0005f && hitLoc[2] < 1.0005f)
+			// Find cone hit
+			Point3D hitLoc = R.Start + roots[0] * rayVec;
+			if (hitLoc[2] > -0.0005f && hitLoc[2] < 1.0005f) 
 			{
 				Hits.push_back(hitLoc);
 				Normals.push_back(Vector3D(2*hitLoc[0], 2*hitLoc[1], -2*hitLoc[2]));
 			}
-		}
-
-		// Find cone cap hit
-		Vector3D Normal;
-		double S = (1.f - ZE)/ZD;
-		hitLoc = R.Start + S * rayVec;
-		if (hitLoc[2] > -0.0005f && hitLoc[2] < 1.0005f && (hitLoc[0]*hitLoc[0] + hitLoc[1]*hitLoc[1]) <= 1.f)
-		{
-			Hits.push_back(hitLoc);
-			Normals.push_back(Vector3D(0,0,1));
-		}
-
-		if (Hits.size() > 0)
-		{
-			hitLoc = Point3D(100000000.f, 100000000.f, 100000000.f);
-			int i = 0;
-			for (Point3D& P : Hits)
+			if (numRoots == 2)
 			{
-				if ((P - R.Start).length2() < (hitLoc - R.Start).length2())
+				hitLoc = R.Start + roots[1] * rayVec;
+				if (hitLoc[2] > -0.0005f && hitLoc[2] < 1.0005f)
 				{
-					hitLoc = P;
-					Normal = Normals[i];
+					Hits.push_back(hitLoc);
+					Normals.push_back(Vector3D(2*hitLoc[0], 2*hitLoc[1], -2*hitLoc[2]));
 				}
-				i++;
 			}
 
-			Point3D WorldRay = M * R.Start;
-			Point3D WorldHit = M * hitLoc;
-
-			if (clampDist(closestDist, WorldRay, WorldHit, Normal, Hit, M))
+			// Find cone cap hit
+			Vector3D Normal;
+			double S = (1.f - ZE)/ZD;
+			hitLoc = R.Start + S * rayVec;
+			if (hitLoc[2] > -0.0005f && hitLoc[2] < 1.0005f && (hitLoc[0]*hitLoc[0] + hitLoc[1]*hitLoc[1]) <= 1.f)
 			{
-				return true;
+				Hits.push_back(hitLoc);
+				Normals.push_back(Vector3D(0,0,1));
+			}
+
+			if (Hits.size() > 0)
+			{
+				hitLoc = Point3D(100000000.f, 100000000.f, 100000000.f);
+				int i = 0;
+				for (Point3D& P : Hits)
+				{
+					if ((P - R.Start).length2() < (hitLoc - R.Start).length2())
+					{
+						hitLoc = P;
+						Normal = Normals[i];
+					}
+					i++;
+				}
+
+				Point3D WorldRay = M * R.Start;
+				Point3D WorldHit = M * hitLoc;
+
+				if (clampDist(closestDist, WorldRay, WorldHit, Normal, Hit, M))
+				{
+					return true;
+				}
 			}
 		}
 	}

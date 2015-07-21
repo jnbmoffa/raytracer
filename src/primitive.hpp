@@ -52,7 +52,7 @@ public:
 
 class Cone : public Primitive {
 public:
-  Cone () { Bounds = BoxF(-1, 1, 1, 0, 1, -1); }
+  Cone () { Bounds = BoxF(-1, 1, 1, -1, 1, -1); }
   virtual ~Cone();
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M);
 };

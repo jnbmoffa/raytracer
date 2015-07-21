@@ -1,0 +1,16 @@
+Using the special octree scene:
+With 4 objects:
+	No octree: 5.183s
+	Octree: 0.763s
+
+With 8 objects:
+	No: 9.861s
+	Tree: 0.643s
+
+With 16 objects:
+	No: 19.278s
+	Tree: 5.902s
+
+With 28 objects:
+	No: 33.601s
+	Tree: 9.571s

@@ -52,6 +52,12 @@ bool SceneNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4&
   return ret;
 }
 
+bool SceneNode::TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M, const double& Time)
+{
+  (void)R; (void)closestDist; (void)Hit; (void)M; (void)Time;
+  return false;
+}
+
 void SceneNode::FlattenScene(Array<SceneNode*>& List, Matrix4x4 M)
 {
   for (SceneNode* s : m_children)
@@ -114,14 +120,16 @@ void JointNode::set_joint_y(double min, double init, double max)
   m_joint_y.max = max;
 }
 
-GeometryNode::GeometryNode(const std::string& name, Primitive* primitive)
+GeometryNode::GeometryNode(const std::string& name, Primitive* primitive, Vector3D Velocity)
   : SceneNode(name),
+    Velocity(Velocity),
     m_primitive(primitive)
 {
 }
 
-GeometryNode::GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M)
+GeometryNode::GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M, Vector3D Velocity)
   : SceneNode(name, M),
+    Velocity(Velocity),
     m_material(Mat),
     m_primitive(primitive)
 {
@@ -135,7 +143,7 @@ GeometryNode::~GeometryNode()
 
 void GeometryNode::FlattenScene(Array<SceneNode*>& List, Matrix4x4 M)
 {
-  List.Add(new GeometryNode(m_name, m_primitive, m_material, M * m_trans));
+  List.Add(new GeometryNode(m_name, m_primitive, m_material, M * m_trans, Velocity));
 }
 
 bool GeometryNode::SimpleTrace(Ray R)
@@ -161,6 +169,28 @@ bool GeometryNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4
   R.Transform(m_invtrans);
 
   if (m_primitive->DepthTrace(R, closestDist, Hit, M * m_trans))
+  {
+    Hit.Mat = m_material;
+    return true;
+  }
+  return false;
+}
+
+bool GeometryNode::TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M, const double& Time)
+{
+  Matrix4x4 m_timetrans = M * m_trans;
+  if (Velocity != Vector3D())
+  {
+    m_timetrans.translate(Time*Velocity);
+    R.Transform(m_timetrans.invert());
+  }
+  else
+  {
+    R.Transform(m_invtrans);
+  }
+  // std::cout << "Scene:" << R.Start << "," << R.Direction << std::endl;
+
+  if (m_primitive->DepthTrace(R, closestDist, Hit, m_timetrans))
   {
     Hit.Mat = m_material;
     return true;

@@ -18,7 +18,7 @@ PhongMaterial::~PhongMaterial()
 {
 }
 
-Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights, const HitInfo& Hit, const Colour& ambient)
+Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time)
 {
 	// Lighting
 	// Ambient
@@ -37,7 +37,7 @@ Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std:
 		if (MaxDist2 > 0) OutCol = OutCol + CausticTotal / (M_PI * MaxDist2);
 
 		// Shadows
-		double LightIntensity = L->GetIntensity(Scene, Hit.Location);
+		double LightIntensity = L->GetIntensity(Scene, Hit.Location, Time);
 		if (IsNearly(LightIntensity, 0.f)) continue;
 
 		// Diffuse

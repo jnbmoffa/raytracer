@@ -15,6 +15,7 @@ class SceneContainer
 protected:
 	Array<SceneNode*>* Nodes;
 	PhotonMap PMap;
+	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time);
 	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit);
 	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist);
 
@@ -29,8 +30,10 @@ public:
 	inline PhotonMap* GetPhotonMap() { return &PMap; }
 
 	// Trace types
+	bool TimeRayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient, const double& Time);
 	bool RayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient);
 	bool PhotonTrace(const Ray& R, HitInfo& Hit);
+	bool TimeDepthTrace(const Ray& R, double& dist, const double& Time);
 	bool DepthTrace(const Ray& R, double& dist);
 };
 
@@ -38,6 +41,7 @@ class OctreeSceneContainer : public SceneContainer
 {
 	OcTree<SceneNode> Tree;
 protected:
+	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time);
 	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) override;
 	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist) override;
 

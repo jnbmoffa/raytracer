@@ -330,6 +330,11 @@ inline Vector3D cross(const Vector3D& a, const Vector3D& b)
   return a.cross(b);
 }
 
+inline bool operator!=(const Vector3D& a, const Vector3D& b)
+{
+  return !IsNearly(a[0], b[0]) || !IsNearly(a[1], b[1]) || !IsNearly(a[2], b[2]);
+}
+
 inline std::ostream& operator <<(std::ostream& os, const Point2D& p)
 {
   return os << "p<" << p[0] << "," << p[1] << ">";

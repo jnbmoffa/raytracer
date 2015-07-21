@@ -19,10 +19,10 @@ struct Light {
   double falloff[3];
 
   // Check if the given point is visible from the provided light position
-  bool IsVisibleFrom(SceneContainer* Scene, const Point3D& LightLoc, const Point3D& TestLoc);
+  bool IsVisibleFrom(SceneContainer* Scene, const Point3D& LightLoc, const Point3D& TestLoc, const double& Time);
 
   // Get the intensity of the light that this is providing to the test location
-  virtual double GetIntensity(SceneContainer* Scene, const Point3D& TestLoc);
+  virtual double GetIntensity(SceneContainer* Scene, const Point3D& TestLoc, const double& Time);
 };
 
 // Area shpere light
@@ -35,7 +35,7 @@ struct SphereLight : public Light
 	std::default_random_engine generator;
     std::uniform_real_distribution<double> Distribution;
 
-	virtual double GetIntensity(SceneContainer* Scene, const Point3D& TestLoc) override;
+	virtual double GetIntensity(SceneContainer* Scene, const Point3D& TestLoc, const double& Time) override;
 };
 
 std::ostream& operator<<(std::ostream& out, const Light& l);

@@ -19,7 +19,7 @@ public:
   virtual double GetGloss() = 0;
 
   // Return the colour for a given Hit and incident ray
-  virtual Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient) = 0;
+  virtual Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient, const double& Time) = 0;
 
 protected:
   Material()
@@ -41,7 +41,7 @@ public:
   virtual double GetRefIndex() override { return refractiveIndex; }
   virtual double GetGloss() override { return glossiness; }
 
-  Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient);
+  Colour DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights,const HitInfo& Hit, const Colour& ambient, const double& Time);
 
 private:
   Colour m_kd;

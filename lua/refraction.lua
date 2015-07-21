@@ -6,28 +6,9 @@ green = gr.material({0.0, 1.0, 0.0}, {0.5, 0.5, 0.5}, 25)
 rgreen = gr.material({0.0, 0.1, 0.0}, {0.5, 0.5, 0.5}, 25)
 rwhite = gr.material({1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}, 25)
 fwhite = gr.material({1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}, 50, 1, 200, 10000)
+chrome = gr.smaterial({1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}, 50, 1, 2000, 0)
 
 root = gr.node('root')
-
--- Many puppets
--- P1 = gr.node('P1')
--- root:add_child(P1)
--- P1:add_child(puppet)
--- P1:translate(-10, 0, 0)
--- P1:rotate('y', 90)
-
--- P2 = gr.node('P2')
--- root:add_child(P2)
--- P2:add_child(puppet)
--- P2:translate(10, 0, 0)
--- P2:rotate('y', -90)
-
-flooroffset = -14
--- poly1 = gr.node('poly1')
--- poly1:translate(0, flooroffset+2, 0)
--- poly1:scale(2, 2, 2)
--- poly1:add_child(poly)
--- root:add_child(poly1)
 
 -- floor
 wall1 = gr.cube('wall1')
@@ -70,28 +51,22 @@ wall1:translate(0, 0, -30)
 wall1:scale(30,1,30)
 
 BALL = gr.sphere('BALL')
-BALL:translate(7, 7, -4)
-BALL:scale(5, 5, 5)
-BALL:set_material(rblue)
-root:add_child(BALL)
-
-BALL = gr.sphere('BALL')
-BALL:translate(-7, 7, 0)
-BALL:scale(5, 5, 5)
+BALL:translate(0, 15, 50)
+BALL:scale(6, 6, 6)
 BALL:set_material(rblue)
 root:add_child(BALL)
 
 -- BALL = gr.cylinder('BALL')
--- BALL:translate(-4, 4, 7)
--- BALL:scale(6, 8, 6)
--- BALL:rotate('x', 90)
+-- BALL:translate(0, 15, 15)
+-- BALL:rotate('y', 90)
+-- BALL:scale(6, 6, 9)
 -- BALL:set_material(rblue)
 -- root:add_child(BALL)
 
-white_light = gr.light(12000, {0.0, 29.0, 0.0}, {1, 1, 1}, {1, 0, 0})
+white_light = gr.light(12000, {0.0, 25.0, 0.0}, {1, 1, 1}, {1, 0, 0}, 4, 4, 4)
 
-camera = gr.pcamera({0, 15, 40}, {0, 0, -1}, {0, 1, 0}, 50, 0.1, 40)
+camera = gr.pcamera({0, 15, 75}, {0, 0, -1}, {0, 1, 0}, 50)
 
-gr.render(root, '../img/sample.png', 1024, 1024,
+gr.render(root, '../img/refraction.png', 1024, 1024,
 	  camera,
-	  {0.3, 0.3, 0.3}, {white_light}, {}, 500000, 0, 1)
+	  {0.3, 0.3, 0.3}, {white_light}, {}, 0, 0, 1)
