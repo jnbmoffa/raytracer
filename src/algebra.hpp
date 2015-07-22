@@ -727,7 +727,7 @@ struct Ray
 
   Ray Refract(const double ni, const double nt, const double cosi, const double sin2t, const HitInfo& Hit) const
   {
-    Ray RefractedRay(Hit.Location, (ni/nt)*Direction + (-(ni/nt)*cosi -sqrt(1-sin2t))*Hit.Normal); RefractedRay.Direction.normalize();
+    Ray RefractedRay(Hit.Location, (ni/nt)*Direction + (ni/nt*cosi -sqrt(1-sin2t))*Hit.Normal); RefractedRay.Direction.normalize();
     return RefractedRay;
   }
 

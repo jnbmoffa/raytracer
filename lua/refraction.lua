@@ -51,7 +51,7 @@ wall1:translate(0, 0, -30)
 wall1:scale(30,1,30)
 
 BALL = gr.sphere('BALL')
-BALL:translate(0, 15, 50)
+BALL:translate(0, 15, 30)
 BALL:scale(6, 6, 6)
 BALL:set_material(rblue)
 root:add_child(BALL)
@@ -65,7 +65,7 @@ root:add_child(BALL)
 
 white_light = gr.light(12000, {0.0, 25.0, 0.0}, {1, 1, 1}, {1, 0, 0}, 4, 4, 4)
 
-camera = gr.pcamera({0, 15, 75}, {0, 0, -1}, {0, 1, 0}, 50)
+camera = gr.pcamera({0, 15, 55}, {0, 0, -1}, {0, 1, 0}, 50)
 
 gr.render(root, '../img/refraction.png', 1024, 1024,
 	  camera,

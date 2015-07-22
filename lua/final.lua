@@ -66,6 +66,6 @@ white_light = gr.alight(12000, {0.0, 25.0, 0.0}, {1, 1, 1}, {1, 0, 0}, 4, 4, 4)
 
 camera = gr.pcamera({0, 15, 40}, {0, 0, -1}, {0, 1, 0}, 50)
 
-gr.render(root, '../img/final.png', 124, 124,
+gr.render(root, '../img/final.png', 1024, 1024,
 	  camera,
 	  {0.3, 0.3, 0.3}, {}, {white_light}, 500000, 0, 1)
