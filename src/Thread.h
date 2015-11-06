@@ -4,20 +4,21 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <memory>
 
-typedef std::atomic<int> atomic_int;
+using atomic_int = std::atomic<int>;
 
-typedef std::thread::id ThreadID;
+using ThreadID = std::thread::id;
 
 // Mutual exclusion
-typedef std::mutex MutexLock;
-typedef std::recursive_mutex OwnerLock;
+using MutexLock = std::mutex;
+using OwnerLock = std::recursive_mutex;
 
 // Synchronization
-typedef std::condition_variable_any CondLock;
+using CondLock = std::condition_variable_any;
 
-typedef std::lock_guard<MutexLock> ScopeLock;
-typedef std::unique_lock<OwnerLock> ScopeOwnerLock;
+using ScopeLock = std::unique_lock<MutexLock>;
+using ScopeOwnerLock = std::unique_lock<OwnerLock>;
 
 // Number of available cores
 inline unsigned int GetNumCores()
@@ -45,16 +46,15 @@ public:
 	ThreadID ID();
 
 	Thread& operator=( Thread& T ) = delete;
-
-	template<typename ThreadType, typename... Args>
-	friend ThreadType* MakeThread(Args... args);
 };
 
 /** Construct and start a new thread of the provided type */
 template<typename ThreadType, typename... Args>
-ThreadType* CreateThread(Args... args)
+std::unique_ptr<ThreadType> CreateThread(Args&&... args)
 {
-	ThreadType* NewThread = new ThreadType(args...);
+	std::unique_ptr<ThreadType> NewThread(
+		std::make_unique<ThreadType>(std::forward<decltype(args)>(args)...)
+		);
 	NewThread->Start();
 	return NewThread;
 }

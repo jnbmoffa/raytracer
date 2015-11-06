@@ -1,7 +1,7 @@
 #pragma once
 
 #include "octree.h"
-#include "array.h"
+#include <vector>
 #include <list>
 #include "photonmap.hpp"
 
@@ -13,21 +13,26 @@ class Light;
 class SceneContainer
 {
 protected:
-	Array<SceneNode*>* Nodes;
+	std::vector<std::unique_ptr<SceneNode>>* Nodes;
 	PhotonMap PMap;
 	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time);
 	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit);
 	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist);
 
 public:
-	const std::list<Light*>* lights;
+	const std::list<std::unique_ptr<Light>>* lights;
 	virtual ~SceneContainer() {}
-	SceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights, unsigned int Photons) : Nodes(Nodes), PMap(this, Photons), lights(lights) {}
+	SceneContainer(std::vector<std::unique_ptr<SceneNode>>* Nodes, const std::list<std::unique_ptr<Light>>* lights, unsigned int Photons) : Nodes(Nodes), PMap(this, Photons), lights(lights) 
+	{
+		// Map photons
+  		PMap.BuildTree();
+	}
 
-	// Init
-	void MapPhotons();
+	// Find all photons within SearchDistSq square units from the CheckLoc
+	// MaxDist2 will be the square dist to the furthest away photon returned
+	void LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2);
 
-	inline PhotonMap* GetPhotonMap() { return &PMap; }
+	inline unsigned int MappedPhotons() { return PMap.NumPhotons(); }
 
 	// Trace types
 	bool TimeRayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient, const double& Time);
@@ -47,5 +52,5 @@ protected:
 
 public:
  	virtual ~OctreeSceneContainer() {}
- 	OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights, unsigned int Photons);
+ 	OctreeSceneContainer(std::vector<std::unique_ptr<SceneNode>>* Nodes, const std::list<std::unique_ptr<Light>>* lights, unsigned int Photons);
 };

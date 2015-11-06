@@ -5,17 +5,7 @@
 #include <iostream>
 #include "progressthread.h"
 
-std::ostream& operator<<(std::ostream& out, const Photon& p)
-{
-	return out << "Photon[" << p.Position << "," << p.Power << "," << p.IncidentDir;
-}
-
-double Photon::operator[](unsigned int Index) const
-{
-	return Position[Index];
-}
-
-PhotonMap::PhotonMap(SceneContainer* Scene, unsigned int NumToEmit) : Scene(Scene), Tree(3), NumToEmit(NumToEmit), generator(std::random_device{}()),
+PhotonMap::PhotonMap(SceneContainer* Scene, size_type NumToEmit) : Scene(Scene), Tree(3), NumToEmit(NumToEmit), generator(std::random_device{}()),
 	PhotonDistribution(-1.f,1.f)
 	{}
 
@@ -79,7 +69,7 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 	else if (bHasRef)
 	{
 		// Stick if this trace has refracted at least once
-		Storage.push_back(new Photon(Hit.Location, Power, R.Direction));
+		Storage.emplace_back(new Photon(Hit.Location, Power, R.Direction));
 	}
 }
 
@@ -88,12 +78,12 @@ void PhotonMap::BuildTree()
 	if (NumToEmit > 0)
 	{
 		std::cout << "Mapping " << NumToEmit * Scene->lights->size() << " photons..." << std::endl;
-		std::shared_ptr<ProgressThread> Status(CreateThread<ProgressThread>((double)NumToEmit * Scene->lights->size()));
+		std::unique_ptr<ProgressThread> Status(CreateThread<ProgressThread>((double)NumToEmit * Scene->lights->size()));
 		Storage.reserve(NumToEmit * Scene->lights->size());
-		for (Light* L : *(Scene->lights))
+		for (auto& L : *(Scene->lights))
 		{
 			Colour Power = (L->power * L->colour) / NumToEmit;
-			for (unsigned int n=0;n<NumToEmit;n++)
+			for (size_type n=0;n<NumToEmit;n++)
 			{
 				// Random photon directions
 				Vector3D Dir(PhotonDistribution(generator), PhotonDistribution(generator), PhotonDistribution(generator)); Dir.normalize();

@@ -18,17 +18,17 @@ PhongMaterial::~PhongMaterial()
 {
 }
 
-Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std::list<Light*>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time)
+Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time)
 {
 	// Lighting
 	// Ambient
 	Colour OutCol = ambient*m_kd;
-	for (Light* L : *lights)
+	for (auto& L : *lights)
 	{
 		// Caustics
 		Array<Photon*> Photons;
-		double radius = 2, MaxDist2 = -1;
-		Scene->GetPhotonMap()->LocatePhotons(Photons, Hit.Location, radius*radius, MaxDist2);
+		double radius = 1.f, MaxDist2 = -1.f;
+		Scene->LocatePhotons(Photons, Hit.Location, radius*radius, MaxDist2);
 		Colour CausticTotal;
 		for (Photon* P : Photons)
 		{

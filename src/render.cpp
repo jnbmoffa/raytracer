@@ -2,6 +2,8 @@
 #include "image.hpp"
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <vector>
 #include "octree.h"
 #include "scenecontainer.h"
 
@@ -13,86 +15,72 @@ int SuperSamples = 1; // AA
 bool bUseOctree = false, bUseAdaptive = false;
 
 void render(// What to render
-               SceneNode* root,
+               std::unique_ptr<SceneNode>&& root,
                // Where to output the image
                const std::string& filename,
                // Image size
                int width, int height,
                // Viewing parameters
-               Camera* cam,
+               std::shared_ptr<LuaCamera> luaCam,
                // Lighting parameters
                const Colour& ambient,
-               const std::list<Light*>& lights,
+               const std::list<std::unique_ptr<Light>>& lights,
                int MappedPhotons,
                // Time stepping
                double TimeDuration, int TimeSteps
                )
 {
+  // Scene setup
+  std::vector<std::unique_ptr<SceneNode>> List;
+  root->FlattenScene(List);
+  std::unique_ptr<SceneContainer> Scene;
+  if (bUseOctree)
+  {
+     Scene = std::make_unique<OctreeSceneContainer>(&List, &lights, MappedPhotons);
+  }
+  else
+  {
+    Scene = std::make_unique<SceneContainer>(&List, &lights, MappedPhotons);
+  }
+
+  std::shared_ptr<Camera> cam = CreateCamera(luaCam, width, height);
+
+  // Create img object to store the render
+  Image img(width, height, 3);
+
   // Nice-to-have output
   std::cout.precision(2);
   std::cerr << "render("
           << filename << ", " << width << ", " << height << ",\n     "
           << *cam << ",\n     "
           << ambient << ",\n     {";
-
-  for (std::list<Light*>::const_iterator I = lights.begin(); I != lights.end(); ++I) {
-    if (I != lights.begin()) std::cerr << ", ";
+  for (auto I = lights.cbegin(); I != lights.cend(); ++I) {
+    if (I != lights.cbegin()) std::cerr << ", ";
     std::cerr << **I;
   }
   std::cerr << "});" << std::endl;
 
-  // Scene setup
-  Array<SceneNode*> List;
-  root->FlattenScene(List);
-  SceneContainer* Scene;
-  if (bUseOctree)
-  {
-     Scene = new OctreeSceneContainer(&List, &lights, MappedPhotons);
-  }
-  else
-  {
-    Scene = new SceneContainer(&List, &lights, MappedPhotons);
-  }
-  Scene->MapPhotons();
-
-  // Camera setup
-  cam->view = cam->view; cam->view.normalize();
-  cam->up = -cam->up; cam->up.normalize();
-  cam->right = cam->up.cross(cam->view); cam->right.normalize();
-  cam->CalcApertureRadius();
-
-  // Determine the render plane parameters
-  RenderPlaneParams Params;
-  double radFOV = cam->fov * (M_PI / 180.f);
-  double heightWidthRatio = (double)width / (double)height;
-
-  Params.halfWidth = cam->GetFocalDist()*tan(radFOV/2);
-  Params.halfHeight = heightWidthRatio * Params.halfWidth;
-
-  double cameraWidth = Params.halfWidth * 2, cameraHeight = Params.halfHeight * 2;
-
-  Params.pixelWidth = cameraWidth / (width - 1);
-  Params.pixelHeight = cameraHeight / (height - 1);
-
-  Image img(width, height, 3);
-
   // Create rendering threads
   std::cout << "Tracing rays..." << std::endl;
-  RenderThread* threads[(int)(xDiv*yDiv)];
-  int i = 0;
-  double H2 = height/yDiv, W3 = width/xDiv;
-  for (double y=0;y<height;y+=H2)
-  {
-    for (double x=0;x<width;x+=W3)
-    {
-      int endY = ((y+H2) > height) ? height : y+H2;
-      int endX = ((x+W3) > width) ? width : x+W3;
-      Params.yMin = y; Params.yMax = endY;
-      Params.xMin = x; Params.xMax = endX;
+  std::unique_ptr<RenderThread> threads[(int)(xDiv*yDiv)];
+  int threadIndex = 0;
+  double  imageBlockHeight = height/yDiv,
+          imageBlockWidth = width/xDiv;
 
-      if (bUseAdaptive) threads[i++] = CreateThread<AdaptiveSampleThread> (Scene, &img, Params, cam, ambient, &lights, TimeDuration, TimeSteps);
-      else if (SuperSamples > 1) threads[i++] = CreateThread<SuperSampleThread> (Scene, &img, Params, cam, ambient, &lights, TimeDuration, TimeSteps, SuperSamples);
-      else threads[i++] = CreateThread<RenderThread> (Scene, &img, Params, cam, ambient, &lights, TimeDuration, TimeSteps);
+  ImageBlock imgBlockParams;
+
+  for (double y=0;y<height;y+=imageBlockHeight)
+  {
+    for (double x=0;x<width;x+=imageBlockWidth)
+    {
+      int endY = ((y+imageBlockHeight) > height) ? height : y+imageBlockHeight;
+      int endX = ((x+imageBlockWidth) > width) ? width : x+imageBlockWidth;
+      imgBlockParams.yMin = y; imgBlockParams.yMax = endY;
+      imgBlockParams.xMin = x; imgBlockParams.xMax = endX;
+
+      if (bUseAdaptive) threads[threadIndex++] = CreateThread<AdaptiveSampleThread> (Scene.get(), &img, imgBlockParams, cam, ambient, TimeDuration, TimeSteps);
+      else if (SuperSamples > 1) threads[threadIndex++] = CreateThread<SuperSampleThread> (Scene.get(), &img, imgBlockParams, cam, ambient, TimeDuration, TimeSteps, SuperSamples);
+      else threads[threadIndex++] = CreateThread<RenderThread> (Scene.get(), &img, imgBlockParams, cam, ambient, TimeDuration, TimeSteps);
     }
   }
   
@@ -108,8 +96,6 @@ void render(// What to render
 
   std::cout << "Creating image file (" << filename << ")..." << std::endl;
   img.savePng(filename);
-
-  delete Scene;
 }
 
 void RenderThread::Main()
@@ -122,7 +108,6 @@ void RenderThread::Main()
       for (int t=0;t<TimeSteps;t++)
       {
         double Time  = TimeDuration*((double)t/(double)TimeSteps);
-        // std::cout <<  Time << std::endl;
         Colour DOFTotal;
         for (int d=0;d<NormCam->GetDOFRays();d++)
         {
@@ -131,10 +116,8 @@ void RenderThread::Main()
         }
         // Average DOF ray colour
         Total = Total + DOFTotal / NormCam->GetDOFRays();
-        // std::cout <<  DOFTotal << std::endl;
       }
 
-      // std::cout <<  TimeSteps << std::endl;
       Total = Total / TimeSteps;
 
       (*img)(x, y, 0) = Total.R();
@@ -147,23 +130,9 @@ void RenderThread::Main()
 
 inline Colour RenderThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
-  // std::cout <<  "Trace" << std::endl;
-  return TracePixelNormalized(x, y, 0.5f, 0.5f, Time);
-}
-
-Colour RenderThread::TracePixelNormalized(int x, int y, double xNorm, double yNorm, const double& Time)
-{
-  // Determine the location on the render plane to fire the ray through
-  // xNorm == 0 && yNorm == 0 -> bottom left of pixel (x,y)
-  // xNorm == 1 && yNorm == 1 -> top right of pixel (x,y)
-  Vector3D rightComp = ((x * Params.pixelWidth) + (Params.pixelWidth*xNorm) - Params.halfWidth) * NormCam->right;
-  Vector3D upComp = ((y * Params.pixelHeight) + (Params.pixelHeight*yNorm) - Params.halfHeight) * NormCam->up;
-  Vector3D View = NormCam->GetFocalDist()*NormCam->view;
-  Point3D ViewPlanePoint = NormCam->eye + View + rightComp + upComp;
-
-  Vector3D RayDir = ViewPlanePoint - RandomEyePoint; RayDir.normalize();
-  Ray CurRay(RandomEyePoint, RayDir);
-  return TraceRay(CurRay, 1.f, 0, Time);
+  Ray R = NormCam->GetRayThroughPixel(x, y, 0.5f, 0.5f);
+  //std::cout << R.Direction << std::endl;
+  return TraceRay(R, 1.f, 0, Time);
 }
 
 Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, const double& Time)
@@ -211,7 +180,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
         Vector3D u = ReflectedRay.Direction.cross(Hit.Normal);
         Vector3D v = ReflectedRay.Direction.cross(u);
 
-        // TODO: remove magic number 4
+        // TODO: remove magic number 8
         Colour TotalGloss;
         for (int i=0;i<8;i++)
         {
@@ -264,7 +233,8 @@ Colour SuperSampleThread::TracePixelAntiAliased(int x, int y, const double& Time
   {
     for (double j=halfSubWidth;j<1;j+=halfSubWidth*2)
     {
-      Cols[index++] = TracePixelNormalized(x, y, i, j, Time);
+      Ray R = NormCam->GetRayThroughPixel(x, y, i, j);
+      Cols[index++] = TraceRay(R, 1.f, 0, Time);
     }
   }
 
@@ -285,10 +255,14 @@ Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, 
   Colour Cols[4];
   double QuartX = (xNormMax - xNormMin)/4.f;
   double QuartY = (yNormMax - yNormMin)/4.f;
-  Cols[0] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMin + QuartY, Time);
-  Cols[1] = TracePixelNormalized(x, y, xNormMin + QuartX, yNormMax - QuartY, Time);
-  Cols[2] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMin + QuartY, Time);
-  Cols[3] = TracePixelNormalized(x, y, xNormMax - QuartX, yNormMax - QuartY, Time);
+  Ray R0 = NormCam->GetRayThroughPixel(x, y, xNormMin + QuartX, yNormMin + QuartY);
+  Ray R1 = NormCam->GetRayThroughPixel(x, y, xNormMin + QuartX, yNormMax - QuartY);
+  Ray R2 = NormCam->GetRayThroughPixel(x, y, xNormMax - QuartX, yNormMin + QuartY);
+  Ray R3 = NormCam->GetRayThroughPixel(x, y, xNormMax - QuartX, yNormMax - QuartY);
+  Cols[0] = TraceRay(R0, 1.f, 0, Time);
+  Cols[1] = TraceRay(R1, 1.f, 0, Time);
+  Cols[2] = TraceRay(R2, 1.f, 0, Time);
+  Cols[3] = TraceRay(R3, 1.f, 0, Time);
   Colour Total = Cols[0] + Cols[1] + Cols[2] + Cols[3];
 
   // Not the same colours - recurse
@@ -299,7 +273,7 @@ Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, 
     Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth, Time) +
                     AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth, Time) +
                     AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth, Time) +
-                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);
+                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);;
     Total = Total / 8.f;
   }
   // Same colours or too deep

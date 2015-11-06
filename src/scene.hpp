@@ -2,23 +2,24 @@
 #define SCENE_HPP
 
 #include <list>
+#include <memory>
 #include "algebra.hpp"
 #include "primitive.hpp"
 #include "material.hpp"
 #include "octree.h"
-#include "array.h"
+#include <vector>
 
 class SceneNode {
 public:
   SceneNode(const std::string& name, Matrix4x4 M = Matrix4x4());
-  virtual ~SceneNode();
+  virtual ~SceneNode() = default;
 
   virtual bool SimpleTrace(Ray R);
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
   virtual bool ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M);
   virtual bool TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M, const double& Time);
 
-  virtual void FlattenScene(Array<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
+  virtual void FlattenScene(std::vector<std::unique_ptr<SceneNode>>& List, Matrix4x4 M = Matrix4x4());
 
   const Matrix4x4& get_transform() const { return m_trans; }
   const Matrix4x4& get_inverse() const { return m_invtrans; }
@@ -35,18 +36,17 @@ public:
     m_invtrans = i;
   }
 
-  void add_child(SceneNode* child)
+  void add_child(std::shared_ptr<SceneNode>& child)
   {
-    m_children.push_back(child);
+    m_children.emplace_back(child);
   }
 
-  void remove_child(SceneNode* child)
+  void remove_child(std::shared_ptr<SceneNode>& child)
   {
     m_children.remove(child);
   }
 
-  // Callbacks to be implemented.
-  // These will be called from Lua.
+  // These are called from Lua.
   void rotate(char axis, double angle);
   void scale(const Vector3D& amount);
   void translate(const Vector3D& amount);
@@ -67,14 +67,14 @@ protected:
   Matrix4x4 m_invtrans;
 
   // Hierarchy
-  typedef std::list<SceneNode*> ChildList;
+  typedef std::list<std::shared_ptr<SceneNode>> ChildList;
   ChildList m_children;
 };
 
 class JointNode : public SceneNode {
 public:
   JointNode(const std::string& name);
-  virtual ~JointNode();
+  virtual ~JointNode() = default;
 
   virtual bool is_joint() const;
 
@@ -82,8 +82,8 @@ public:
   void set_joint_y(double min, double init, double max);
 
   struct JointRange {
-    double min, init, max;
-  };
+  double min, init, max;
+};
 
   
 protected:
@@ -93,11 +93,11 @@ protected:
 
 class GeometryNode : public SceneNode, OcTreeObject {
 public:
-  GeometryNode(const std::string& name, Primitive* primitive, Vector3D Velocity = Vector3D());
-  GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M = Matrix4x4(), Vector3D Velocity = Vector3D());
-  virtual ~GeometryNode();
+  GeometryNode(const std::string& name, std::shared_ptr<Primitive> primitive, Vector3D Velocity = Vector3D());
+  GeometryNode(const std::string& name, std::shared_ptr<Primitive> primitive, std::shared_ptr<Material>& Mat, Matrix4x4 M = Matrix4x4(), Vector3D Velocity = Vector3D());
+  virtual ~GeometryNode() = default;
 
-  virtual void FlattenScene(Array<SceneNode*>& List, Matrix4x4 M = Matrix4x4());
+  virtual void FlattenScene(std::vector<std::unique_ptr<SceneNode>>& List, Matrix4x4 M = Matrix4x4());
 
   virtual bool SimpleTrace(Ray R) override;
   virtual bool DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M) override;
@@ -109,7 +109,7 @@ public:
 
   virtual BoxF GetBox() override;
 
-  void set_material(Material* material)
+  void set_material(std::shared_ptr<Material>& material)
   {
     m_material = material;
   }
@@ -118,10 +118,10 @@ protected:
   // Linear veloctiy for motion blur (units/second)
   Vector3D Velocity;
 
-  Material* m_material;
-  Primitive* m_primitive;
+  std::shared_ptr<Material> m_material;
+  std::shared_ptr<Primitive> m_primitive;
 };
 
-BoxF GetSceneBounds(const Array<SceneNode*>& Scene);
+BoxF GetSceneBounds(const std::vector<std::unique_ptr<SceneNode>>& Scene);
 
 #endif

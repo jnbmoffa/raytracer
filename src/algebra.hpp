@@ -707,7 +707,7 @@ struct HitInfo
 struct Ray
 {
   Ray() {}
-  Ray(Point3D S, Vector3D D) : Start(S), Direction(D)
+  Ray(const Point3D& S, const Vector3D& D) : Start(S), Direction(D)
   {
     invDirection = Vector3D(1.f/D[0], 1.f/D[1], 1.f/D[2]);
   }

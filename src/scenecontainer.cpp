@@ -5,7 +5,7 @@ bool SceneContainer::ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, cons
 {
   double closestDist = 10000000.f; Matrix4x4 M;
   bool bHit = false;
-  for (SceneNode* S : *Nodes)
+  for (auto& S : *Nodes)
   {
     if(S->TimeTrace(R, closestDist, Hit, M, Time)) bHit = true;
   }
@@ -16,7 +16,7 @@ bool SceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit)
 {
   double closestDist = 10000000.f; Matrix4x4 M;
   bool bHit = false;
-  for (SceneNode* S : *Nodes)
+  for (auto& S : *Nodes)
   {
     if(S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
   }
@@ -28,16 +28,16 @@ bool SceneContainer::ContainerSpecificDepthTrace(const Ray& R, double& dist)
   bool bHit = false;
   HitInfo ShadowHit; Matrix4x4 M;
   dist = 1000000.f;
-  for (SceneNode* S : *Nodes)
+  for (auto& S : *Nodes)
   {
     if (S->DepthTrace(R, dist, ShadowHit, M)) bHit = true;
   }
   return bHit;
 }
 
-void SceneContainer::MapPhotons()
+void SceneContainer::LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2)
 {
-  PMap.BuildTree();
+  PMap.LocatePhotons(OutArray, CheckLoc, SearchDistSq, MaxDist2);
 }
 
 bool SceneContainer::TimeRayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient, const double& Time)
@@ -82,13 +82,13 @@ bool SceneContainer::DepthTrace(const Ray& R, double& dist)
   return ContainerSpecificDepthTrace(R, dist);
 }
 
-OctreeSceneContainer::OctreeSceneContainer(Array<SceneNode*>* Nodes, const std::list<Light*>* lights, unsigned int Photons) : SceneContainer(Nodes, lights, Photons)
+OctreeSceneContainer::OctreeSceneContainer(std::vector<std::unique_ptr<SceneNode>>* Nodes, const std::list<std::unique_ptr<Light>>* lights, unsigned int Photons) : SceneContainer(Nodes, lights, Photons)
 {
   std::cout << "Building octree..." << std::endl;
   Tree = OcTree<SceneNode>(GetSceneBounds(*Nodes));
-  for (SceneNode* s : *Nodes)
+  for (auto& s : *Nodes)
   {
-    Tree.Insert(s);
+    Tree.Insert(s.get());
   }
 }
 

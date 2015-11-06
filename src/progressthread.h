@@ -10,11 +10,12 @@ class ProgressThread : public Thread
 public:
 	atomic_int PROGRESS;
 	
-	ProgressThread(const double& Total) : Total(Total), PROGRESS(0) {}
+	explicit ProgressThread(const double& Total) : Total(Total), PROGRESS(0) {}
 
 	virtual void Main() override
 	{
 		 // Status bar
+		std::cout.precision(2);
 		while (PROGRESS < Total)
 		{
 			std::cout << std::fixed << (double)(PROGRESS*100)/Total << "\%\xd"; std::cout.flush();

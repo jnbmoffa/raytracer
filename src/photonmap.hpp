@@ -2,42 +2,35 @@
 #include "array.h"
 #include "algebra.hpp"
 #include "kdtree.h"
+#include "photon.h"
 #include <memory>
 #include <vector>
 
 class SceneContainer;
 
-// The actual stored data in the map
-struct Photon : public KDObject
-{
-	Photon() {}
-	Photon(Point3D Position, Colour Power, Vector3D IncidentDir) : Position(Position), Power(Power), IncidentDir(IncidentDir) {}
-
-	Point3D Position;
-	Colour Power;
-	Vector3D IncidentDir;
-
-	virtual double operator[](unsigned int Index) const override;
-};
-
-std::ostream& operator<<(std::ostream& out, const Photon& p);
-
 class PhotonMap
 {
+public:
+	using photon_stg_type = std::vector<Photon*>;
+	using size_type = photon_stg_type::size_type;
+
+private:
 	SceneContainer* Scene;
-	std::vector<Photon*> Storage;
+	photon_stg_type Storage;
 	KDTree<Photon> Tree;
-	unsigned int NumToEmit;
+	size_type NumToEmit;
 
 	std::default_random_engine generator;
     std::uniform_real_distribution<double> PhotonDistribution;
 
-    // Only does caustics, global illumination uses russian roulette
-	void TracePhoton(const Ray& R, const Colour& Power, unsigned int depth, bool bHasRef = false);
+	// Only does caustics, global illumination uses russian roulette
+    void TracePhoton(const Ray& R, const Colour& Power, unsigned int depth, bool bHasRef = false);
 
 public:
-	PhotonMap(SceneContainer* Scene, unsigned int NumToEmit);
+	PhotonMap(SceneContainer* Scene, size_type NumToEmit);
 	~PhotonMap();
+
+	inline unsigned int NumPhotons() const { return NumToEmit; }
 
 	// Fire NumToEmit photons into the scene and store them in a KDTree
 	void BuildTree();

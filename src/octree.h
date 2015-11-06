@@ -16,11 +16,11 @@ public:
 template<typename OctObjectType = OcTreeObject>
 class OcTree
 {
-	int level;				// Depth in octree structure
+	unsigned level;			// Depth in octree structure
 	BoxF Bounds;			// Bounds of this tree
 	Array<OctObjectType*> objects;	// objects in this tree
 	Array<OcTree*> nodes;	// regions
-	int MAX_OBJECTS, MAX_LEVELS;
+	unsigned MAX_OBJECTS, MAX_LEVELS;
 	
 	// Break this tree up into 8 cubes
 	void Split()
@@ -36,22 +36,22 @@ class OcTree
 		float ba = Bounds.GetBack();
 
 		// top left front = 0
-		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, f, f - halfDepth)));
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
 		// top right front = 1
-		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, f, f - halfDepth)));
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
 		// top left back = 2
-		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, ba + halfDepth, ba)));
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
 		// top right back = 3
-		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, ba + halfDepth, ba)));
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
 
 		// bottom left front = 4
-		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, f, f - halfDepth)));
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
 		// bottom right front = 5
-		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, f, f - halfDepth)));
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
 		// bottom left back = 6
-		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, ba + halfDepth, ba)));
+		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
 		// bottom right back = 7
-		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, ba + halfDepth, ba)));
+		nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
 	}
 
 	// Return index of the cube the box fits into
@@ -111,10 +111,12 @@ class OcTree
 		return index;
 	}
 
+	OcTree(int pLevel, const BoxF& Bounds, int maxObj, int maxLvl) : level(pLevel), Bounds(Bounds), MAX_OBJECTS(maxObj), MAX_LEVELS(maxLvl) {  }
+
 public:
-	OcTree() : MAX_OBJECTS(1), MAX_LEVELS(4) {}
+	OcTree() : level(0), MAX_OBJECTS(1), MAX_LEVELS(4) {}
 	OcTree(const BoxF& Bounds, int maxObj = 1, int maxLvl = 4) : level(0), Bounds(Bounds), MAX_OBJECTS(maxObj), MAX_LEVELS(maxLvl) {  }
-	OcTree(int pLevel, const BoxF& Bounds) : level(pLevel), Bounds(Bounds) {  }
+
 	~OcTree()
 	{
 		this->Clear();

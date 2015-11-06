@@ -7,17 +7,13 @@ SceneNode::SceneNode(const std::string& name, Matrix4x4 M)
 {
 }
 
-SceneNode::~SceneNode()
-{
-}
-
 bool SceneNode::SimpleTrace(Ray R)
 {
   R.Transform(m_invtrans);
 
-  for (ChildList::iterator iter = m_children.begin(); iter != m_children.end(); ++iter)
+  for (auto iter = m_children.begin(); iter != m_children.end(); ++iter)
   {
-    SceneNode* Node = *iter;
+    auto& Node = *iter;
     if (Node->SimpleTrace(R)) return true;
   }
   return false;
@@ -28,9 +24,9 @@ bool SceneNode::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& 
   R.Transform(m_invtrans); Matrix4x4 T(M * m_trans);
   
   bool ret = false;
-  for (ChildList::iterator iter = m_children.begin(); iter != m_children.end(); ++iter)
+  for (auto iter = m_children.begin(); iter != m_children.end(); ++iter)
   {
-    SceneNode* Node = *iter;
+    auto& Node = *iter;
     if (Node->DepthTrace(R, closestDist, Hit, T)) ret = true;
   }
   return ret;
@@ -41,9 +37,9 @@ bool SceneNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4&
   R.Transform(m_invtrans); Matrix4x4 T(M * m_trans);
 
   bool ret = false;
-  for (ChildList::iterator iter = m_children.begin(); iter != m_children.end(); ++iter)
+  for (auto iter = m_children.begin(); iter != m_children.end(); ++iter)
   {
-    SceneNode* Node = *iter;
+    auto& Node = *iter;
     if (Node->ColourTrace(R, closestDist, Hit, T))
     {
       ret = true;
@@ -58,9 +54,9 @@ bool SceneNode::TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M
   return false;
 }
 
-void SceneNode::FlattenScene(Array<SceneNode*>& List, Matrix4x4 M)
+void SceneNode::FlattenScene(std::vector<std::unique_ptr<SceneNode>>& List, Matrix4x4 M)
 {
-  for (SceneNode* s : m_children)
+  for (auto& s : m_children)
   {
     s->FlattenScene(List, M * m_trans);
   }
@@ -97,10 +93,6 @@ JointNode::JointNode(const std::string& name)
 {
 }
 
-JointNode::~JointNode()
-{
-}
-
 bool JointNode::is_joint() const
 {
   return true;
@@ -120,14 +112,14 @@ void JointNode::set_joint_y(double min, double init, double max)
   m_joint_y.max = max;
 }
 
-GeometryNode::GeometryNode(const std::string& name, Primitive* primitive, Vector3D Velocity)
+GeometryNode::GeometryNode(const std::string& name, std::shared_ptr<Primitive> primitive, Vector3D Velocity)
   : SceneNode(name),
     Velocity(Velocity),
     m_primitive(primitive)
 {
 }
 
-GeometryNode::GeometryNode(const std::string& name, Primitive* primitive, Material* Mat, Matrix4x4 M, Vector3D Velocity)
+GeometryNode::GeometryNode(const std::string& name, std::shared_ptr<Primitive> primitive, std::shared_ptr<Material>& Mat, Matrix4x4 M, Vector3D Velocity)
   : SceneNode(name, M),
     Velocity(Velocity),
     m_material(Mat),
@@ -136,14 +128,9 @@ GeometryNode::GeometryNode(const std::string& name, Primitive* primitive, Materi
   m_invtrans = m_trans.invert();
 }
 
-GeometryNode::~GeometryNode()
+void GeometryNode::FlattenScene(std::vector<std::unique_ptr<SceneNode>>& List, Matrix4x4 M)
 {
-  if (m_primitive) delete m_primitive;
-}
-
-void GeometryNode::FlattenScene(Array<SceneNode*>& List, Matrix4x4 M)
-{
-  List.Add(new GeometryNode(m_name, m_primitive, m_material, M * m_trans, Velocity));
+  List.emplace_back(std::make_unique<GeometryNode>(m_name, m_primitive, m_material, M * m_trans, Velocity));
 }
 
 bool GeometryNode::SimpleTrace(Ray R)
@@ -170,7 +157,7 @@ bool GeometryNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4
 
   if (m_primitive->DepthTrace(R, closestDist, Hit, M * m_trans))
   {
-    Hit.Mat = m_material;
+    Hit.Mat = m_material.get();
     return true;
   }
   return false;
@@ -192,7 +179,7 @@ bool GeometryNode::TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4
 
   if (m_primitive->DepthTrace(R, closestDist, Hit, m_timetrans))
   {
-    Hit.Mat = m_material;
+    Hit.Mat = m_material.get();
     return true;
   }
   return false;
@@ -205,11 +192,11 @@ BoxF GeometryNode::GetBox()
   return Bounds;
 }
 
-BoxF GetSceneBounds(const Array<SceneNode*>& Scene)
+BoxF GetSceneBounds(const std::vector<std::unique_ptr<SceneNode>>& Scene)
 {
   double inf = 1000000000.f;
   BoxF Bounds(inf, -inf, -inf, inf, -inf, inf);
-  for (SceneNode* N : Scene)
+  for (auto& N : Scene)
   {
     BoxF B = N->GetBox();
     Bounds.GetLeft() = std::min(Bounds.GetLeft(), B.GetLeft());

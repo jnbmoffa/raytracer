@@ -1,17 +1,9 @@
 #pragma once
 #include "array.h"
+#include "kdobject.h"
 #include <algorithm>
 #include <vector>
-
-// The base class of any object to be stored in the KDTree
-class KDObject
-{
-public:
-	virtual ~KDObject() {}
-
-	// Need to be able to access the k-th element
-	virtual double operator[](unsigned int Index) const = 0;
-};
+#include <limits>
 
 // Comparison function for finding the median for KDTree building
 template<typename T>
@@ -72,7 +64,7 @@ class KDTree
 				}
 			}
 			
-			double D2, val;
+			double D2 = 0.f, val;
 			for (unsigned int i=0;i<K;i++)
 			{
 				val = (*P)[i] - CheckLoc[i];
@@ -112,9 +104,25 @@ class KDTree
 		return node;
 	}
 
+	// Free tree memory
+	void CleanupNode(Node* node)
+	{
+		if(node)
+		{
+			if(node->Left) CleanupNode(node->Left);
+			if(node->Right) CleanupNode(node->Right);
+			delete node;
+		}
+	}
+
 public:
 	// Iintialize to K dimensions
 	KDTree(unsigned int K) : K(K), Root(nullptr) {}
+
+	~KDTree()
+	{
+		CleanupNode(Root);
+	}
 
 	// Inserion into KDTree from array adapted from Wikipedia
 	// Split the array on the median, storing it in the current node and recursing on the other halves of the array

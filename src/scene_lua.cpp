@@ -43,9 +43,10 @@
 #include <vector>
 #include "lua488.hpp"
 #include "light.hpp"
-#include "camera.h"
+#include "luacamera.h"
 #include "render.hpp"
 #include "mesh.hpp"
+#include <memory>
 
 // Uncomment the following line to enable debugging messages
 // #define GRLUA_ENABLE_DEBUG
@@ -80,8 +81,11 @@ struct gr_node_ud {
 // The "userdata" type for a material. Objects of this type will be
 // allocated by Lua to represent materials.
 struct gr_material_ud {
-  Material* material;
+  std::shared_ptr<Material> material;
 };
+
+// Store all the materials so their destructors can be called.
+std::vector<gr_material_ud*> materials;
 
 // The "userdata" type for a light. Objects of this type will be
 // allocated by Lua to represent lights.
@@ -92,8 +96,11 @@ struct gr_light_ud {
 // The "userdata" type for a camera. Objects of this type will be
 // allocated by Lua to represent cameras.
 struct gr_camera_ud {
-  Camera* camera;
+  std::shared_ptr<LuaCamera> camera;
 };
+
+// Store all the camera so their destructors can be called.
+std::vector<gr_camera_ud*> cameras;
 
 // Useful function to retrieve and check an n-tuple of numbers.
 template<typename T>
@@ -163,7 +170,7 @@ int gr_sphere_cmd(lua_State* L)
   data->node = 0;
   
   const char* name = luaL_checkstring(L, 1);
-  data->node = new GeometryNode(name, new Sphere());
+  data->node = new GeometryNode(name, std::make_shared<Sphere>());
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -183,7 +190,7 @@ int gr_velocity_sphere_cmd(lua_State* L)
   const char* name = luaL_checkstring(L, 1);
   Vector3D Vel;
   get_tuple(L, 2, &(Vel[0]), 3);
-  data->node = new GeometryNode(name, new Sphere(), Vel);
+  data->node = new GeometryNode(name, std::make_shared<Sphere>(), Vel);
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -201,7 +208,7 @@ int gr_cube_cmd(lua_State* L)
   data->node = 0;
   
   const char* name = luaL_checkstring(L, 1);
-  data->node = new GeometryNode(name, new Cube());
+  data->node = new GeometryNode(name, std::make_shared<Cube>());
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -219,7 +226,7 @@ int gr_cylinder_cmd(lua_State* L)
   data->node = 0;
   
   const char* name = luaL_checkstring(L, 1);
-  data->node = new GeometryNode(name, new Cylinder());
+  data->node = new GeometryNode(name, std::make_shared<Cylinder>());
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -237,7 +244,7 @@ int gr_cone_cmd(lua_State* L)
   data->node = 0;
   
   const char* name = luaL_checkstring(L, 1);
-  data->node = new GeometryNode(name, new Cone());
+  data->node = new GeometryNode(name, std::make_shared<Cone>());
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -261,7 +268,7 @@ int gr_nh_sphere_cmd(lua_State* L)
 
   double radius = luaL_checknumber(L, 3);
 
-  data->node = new GeometryNode(name, new NonhierSphere(pos, radius));
+  data->node = new GeometryNode(name, std::make_shared<NonhierSphere>(pos, radius));
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -285,7 +292,7 @@ int gr_nh_box_cmd(lua_State* L)
 
   double size = luaL_checknumber(L, 3);
 
-  data->node = new GeometryNode(name, new NonhierBox(pos, size));
+  data->node = new GeometryNode(name, std::make_shared<NonhierBox>(pos, size));
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -343,7 +350,7 @@ int gr_mesh_cmd(lua_State* L)
     lua_pop(L, 1);
   }
 
-  Mesh* mesh = new Mesh(verts, faces);
+  std::shared_ptr<Mesh> mesh(new Mesh(verts, faces));
   GRLUA_DEBUG(*mesh);
   data->node = new GeometryNode(name, mesh);
 
@@ -418,19 +425,21 @@ int gr_pcamera_cmd(lua_State* L)
   GRLUA_DEBUG_CALL;
 
   gr_camera_ud* data = (gr_camera_ud*)lua_newuserdata(L, sizeof(gr_camera_ud));
-  data->camera = 0;
+  new (&(data->camera)) std::shared_ptr<LuaCamera>();  // Placement new
   
-  PointCamera c;
+  cameras.emplace_back(data);
+
+  LuaCamera c;
 
   get_tuple(L, 1, &(c.eye[0]), 3);
   get_tuple(L, 2, &(c.view[0]), 3);
   get_tuple(L, 3, &(c.up[0]), 3);
   c.fov = luaL_checknumber(L, 4);
   c.ApertureRadius = 0;
-  c.FocalDistance = 0;
+  c.FocalDistance = 1;
   c.DOFRays = 1;
   
-  data->camera = new PointCamera(c);
+  data->camera = std::make_shared<LuaCamera>(c);
 
   luaL_newmetatable(L, "gr.camera");
   lua_setmetatable(L, -2);
@@ -445,9 +454,11 @@ int gr_lcamera_cmd(lua_State* L)
   GRLUA_DEBUG_CALL;
 
   gr_camera_ud* data = (gr_camera_ud*)lua_newuserdata(L, sizeof(gr_camera_ud));
-  data->camera = 0;
+  new (&(data->camera)) std::shared_ptr<LuaCamera>();  // Placement new
   
-  LenseCamera c;
+  cameras.emplace_back(data);
+
+  LuaCamera c;
 
   get_tuple(L, 1, &(c.eye[0]), 3);
   get_tuple(L, 2, &(c.view[0]), 3);
@@ -457,7 +468,7 @@ int gr_lcamera_cmd(lua_State* L)
   c.FocalDistance = luaL_checknumber(L, 6);
   c.DOFRays = luaL_checknumber(L, 7);
   
-  data->camera = new LenseCamera(c);
+  data->camera = std::make_shared<LuaCamera>(c);
 
   luaL_newmetatable(L, "gr.camera");
   lua_setmetatable(L, -2);
@@ -479,11 +490,9 @@ int gr_render_cmd(lua_State* L)
   int width = luaL_checknumber(L, 3);
   int height = luaL_checknumber(L, 4);
 
-  Camera* cam;
-
   gr_camera_ud* cdata = (gr_camera_ud*)luaL_checkudata(L, 5, "gr.camera");
   luaL_argcheck(L, cdata != 0, 5, "Camera expected");
-  cam = cdata->camera;
+  std::shared_ptr<LuaCamera> cam = cdata->camera;
 
   double ambient_data[3];
   get_tuple(L, 6, ambient_data, 3);
@@ -493,13 +502,13 @@ int gr_render_cmd(lua_State* L)
   int light_count = luaL_getn(L, 7);
   
   // luaL_argcheck(L, light_count >= 1, 7, "Tuple of lights expected");
-  std::list<Light*> lights;
+  std::list<std::unique_ptr<Light>> lights;
   for (int i = 1; i <= light_count; i++) {
     lua_rawgeti(L, 7, i);
     gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
     luaL_argcheck(L, ldata != 0, 7, "Light expected");
 
-    lights.push_back(ldata->light);
+    lights.emplace_back(ldata->light);
     lua_pop(L, 1);
   }
 
@@ -507,13 +516,12 @@ int gr_render_cmd(lua_State* L)
   int alight_count = luaL_getn(L, 8);
   
   // luaL_argcheck(L, light_count >= 1, 8, "Tuple of lights expected");
-  // std::list<Light*> lights;
   for (int i = 1; i <= alight_count; i++) {
     lua_rawgeti(L, 8, i);
     gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.alight");
     luaL_argcheck(L, ldata != 0, 8, "Area Light expected");
 
-    lights.push_back(ldata->light);
+    lights.emplace_back(ldata->light);
     lua_pop(L, 1);
   }
 
@@ -521,7 +529,7 @@ int gr_render_cmd(lua_State* L)
   int D = luaL_checknumber(L, 10);
   int Steps = luaL_checknumber(L, 11);
 
-  render(root->node, filename, width, height, cam, ambient, lights, Photons, D, Steps);
+  render(std::unique_ptr<SceneNode>(root->node), filename, width, height, cam, ambient, lights, Photons, D, Steps);
   
   return 0;
 }
@@ -533,17 +541,19 @@ int gr_material_cmd(lua_State* L)
   GRLUA_DEBUG_CALL;
   
   gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
-  data->material = 0;
+  new (&(data->material)) std::shared_ptr<Material>();  // Placement new
   
+  materials.emplace_back(data);
+
   double kd[3], ks[3];
   get_tuple(L, 1, kd, 3);
   get_tuple(L, 2, ks, 3);
 
   double shininess = luaL_checknumber(L, 3);
   
-  data->material = new PhongMaterial(Colour(kd[0], kd[1], kd[2]),
-                                     Colour(ks[0], ks[1], ks[2]),
-                                     shininess);
+  data->material = std::make_shared<PhongMaterial>(Colour(kd[0], kd[1], kd[2]),
+                                                   Colour(ks[0], ks[1], ks[2]),
+                                                   shininess);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -557,8 +567,10 @@ int gr_smaterial_cmd(lua_State* L)
   GRLUA_DEBUG_CALL;
   
   gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
-  data->material = 0;
-  
+  new (&(data->material)) std::shared_ptr<Material>();  // Placement new
+
+  materials.emplace_back(data);
+
   double kd[3], ks[3];
   get_tuple(L, 1, kd, 3);
   get_tuple(L, 2, ks, 3);
@@ -568,12 +580,12 @@ int gr_smaterial_cmd(lua_State* L)
   double refractiveIndex = luaL_checknumber(L, 5);
   double glossiness = luaL_checknumber(L, 6);
   
-  data->material = new PhongMaterial(Colour(kd[0], kd[1], kd[2]),
-                                     Colour(ks[0], ks[1], ks[2]),
-                                     shininess,
-                                     refractive != 0.f,
-                                     refractiveIndex,
-                                     glossiness);
+  data->material = std::make_shared<PhongMaterial>(Colour(kd[0], kd[1], kd[2]),
+                                                   Colour(ks[0], ks[1], ks[2]),
+                                                   shininess,
+                                                   refractive != 0.f,
+                                                   refractiveIndex,
+                                                   glossiness);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -595,7 +607,7 @@ int gr_node_add_child_cmd(lua_State* L)
   gr_node_ud* childdata = (gr_node_ud*)luaL_checkudata(L, 2, "gr.node");
   luaL_argcheck(L, childdata != 0, 2, "Node expected");
 
-  SceneNode* child = childdata->node;
+  std::shared_ptr<SceneNode> child(childdata->node);
 
   self->add_child(child);
 
@@ -618,9 +630,7 @@ int gr_node_set_material_cmd(lua_State* L)
   gr_material_ud* matdata = (gr_material_ud*)luaL_checkudata(L, 2, "gr.material");
   luaL_argcheck(L, matdata != 0, 2, "Material expected");
 
-  Material* material = matdata->material;
-
-  self->set_material(material);
+  self->set_material(matdata->material);
 
   return 0;
 }
@@ -801,6 +811,17 @@ bool run_lua(const std::string& filename)
   }
   GRLUA_DEBUG("Closing the interpreter");
   
+  // Cleanup the material shared pointers
+  for(auto ptr : materials)
+  {
+    ptr->material.~shared_ptr<Material>();
+  }
+
+  for(auto ptr : cameras)
+  {
+    ptr->camera.~shared_ptr<LuaCamera>();
+  }
+
   // Close the interpreter, free up any resources not needed
   lua_close(L);
 
