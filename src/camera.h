@@ -2,6 +2,7 @@
 
 #include "luacamera.h"
 #include "algebra.hpp"
+#include "ray.h"
 #include <iosfwd>
 #include <memory>
 

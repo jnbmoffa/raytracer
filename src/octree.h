@@ -1,6 +1,7 @@
 #pragma once
 #include "box.h"
 #include "array.h"
+#include "ray.h"
 #include <iostream>
 
 class OcTreeObject

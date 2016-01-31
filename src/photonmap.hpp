@@ -1,6 +1,7 @@
 #pragma once
 #include "array.h"
 #include "algebra.hpp"
+#include "ray.h"
 #include "kdtree.h"
 #include "photon.h"
 #include <memory>

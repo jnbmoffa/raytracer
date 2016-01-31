@@ -1,5 +1,6 @@
 #include "light.hpp"
 #include "scenecontainer.h"
+#include "ray.h"
 #include <iostream>
 #include <cmath>
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "algebra.hpp"
+#include "ray.h"
 #include <iostream>
 #include <cmath>
 

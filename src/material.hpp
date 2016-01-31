@@ -2,6 +2,7 @@
 #define CS488_MATERIAL_HPP
 
 #include "algebra.hpp"
+#include "ray.h"
 #include <list>
 #include <memory>
 

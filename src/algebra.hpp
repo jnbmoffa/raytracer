@@ -18,7 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
-#include <stack>
+#include "fastmath.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -540,19 +540,18 @@ private:
   double v_[16];
 };
 
+// Specialization from fastmath.h
+template<>
+struct MultMtxImpl<Matrix4x4,4,0,0,4*4>
+{
+  static inline void eval(Matrix4x4&, const Matrix4x4&,
+    const Matrix4x4&) {}
+};
+
 inline Matrix4x4 operator *(const Matrix4x4& a, const Matrix4x4& b)
 {
   Matrix4x4 ret;
-
-  for(size_t i = 0; i < 4; ++i) {
-    Vector4D row = a.getRow(i);
-		
-    for(size_t j = 0; j < 4; ++j) {
-      ret[i][j] = row[0] * b[0][j] + row[1] * b[1][j] + 
-        row[2] * b[2][j] + row[3] * b[3][j];
-    }
-  }
-
+  MultMtx<Matrix4x4,4>::eval(ret,a,b);
   return ret;
 }
 
@@ -692,48 +691,5 @@ inline std::ostream& operator <<(std::ostream& os, const Colour& c)
 {
   return os << "c<" << c.R() << "," << c.G() << "," << c.B() << ">";
 }
-
-class Material;
-
-struct HitInfo
-{
-  HitInfo() : Mat(nullptr) {}
-
-  Point3D Location;
-  Vector3D Normal;
-  Material* Mat;
-};
-
-struct Ray
-{
-  Ray() {}
-  Ray(const Point3D& S, const Vector3D& D) : Start(S), Direction(D)
-  {
-    invDirection = Vector3D(1.f/D[0], 1.f/D[1], 1.f/D[2]);
-  }
-
-  void Transform(const Matrix4x4& M)
-  {
-      Direction = M * Direction;
-      Start = M * Start;
-      invDirection = Vector3D(1.f/Direction[0], 1.f/Direction[1], 1.f/Direction[2]);
-  }
-
-  Ray Reflect(const HitInfo& Hit, const double cosi) const
-  {
-    Ray ReflectedRay(Hit.Location, Direction + ((2*cosi)*Hit.Normal)); ReflectedRay.Direction.normalize();
-    return ReflectedRay;
-  }
-
-  Ray Refract(const double ni, const double nt, const double cosi, const double sin2t, const HitInfo& Hit) const
-  {
-    Ray RefractedRay(Hit.Location, (ni/nt)*Direction + (ni/nt*cosi -sqrt(1-sin2t))*Hit.Normal); RefractedRay.Direction.normalize();
-    return RefractedRay;
-  }
-
-  Point3D Start;
-  Vector3D Direction;
-  Vector3D invDirection;  // AABB optimization
-};
 
 #endif // CS488_ALGEBRA_HPP
