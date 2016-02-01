@@ -8,8 +8,8 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
     m_faces(faces)
 {
   double MaxX, MaxY, MaxZ, MinX, MinY, MinZ;
-  MaxX = MaxY = MaxZ = -1000000.f;
-  MinX = MinY = MinZ =  1000000.f;
+  MaxX = MaxY = MaxZ = -1000000.0;
+  MinX = MinY = MinZ =  1000000.0;
   for (std::vector<Point3D>::const_iterator iter = verts.begin(); iter != verts.end(); ++iter)
   {
     Point3D P = *iter;
@@ -20,7 +20,7 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
     MinY = std::min<double>(MinY, P[1]);
     MinZ = std::min<double>(MinZ, P[2]);
   }
-  Point3D center((MaxX + MinX)/2.f, (MaxY + MinY)/2.f, (MaxZ + MinZ)/2.f);
+  Point3D center((MaxX + MinX)/2.0, (MaxY + MinY)/2.0, (MaxZ + MinZ)/2.0);
   double radius = std::max(std::abs(center[0]-MaxX), std::max(std::abs(center[0]-MinX),
                   std::max(std::abs(center[1]-MaxY), std::max(std::abs(center[1]-MinY),
                   std::max(std::abs(center[2]-MaxZ), std::abs(center[2]-MinZ))))));

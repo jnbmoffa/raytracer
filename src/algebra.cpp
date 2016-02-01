@@ -17,19 +17,6 @@
 Colour Colour::Black = Colour(0, 0, 0);
 Colour Colour::White = Colour(1, 1, 1);
 
-double Vector2D::normalize()
-{
-  Vector2D vector;
-  double length = this->length();
-
-  if(length != 0) {
-      v_[0] /= length;
-      v_[1] /= length;
-  }
-
-  return 1 / length;
-}
-
 double Vector3D::normalize()
 {
   double denom = 1.0;

@@ -28,6 +28,7 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 	// Refraction enabled?
 	if (Hit.Mat->GetRef())
 	{
+		unsigned int nextDepth = depth+1;
 		double NdotR = R.Direction.dot(Hit.Normal);
 		double ni, nt;
 		if (NdotR > 0)
@@ -54,16 +55,16 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 
 			// Photons don't do glossy reflection
 			Ray ReflectedRay = R.Reflect(Hit, NdotR);
-			TracePhoton(ReflectedRay, Reflectance*Power, depth+1, bHasRef);
+			TracePhoton(ReflectedRay, Reflectance*Power, nextDepth, bHasRef);
 
 			Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
-			TracePhoton(RefractedRay, (1.f-Reflectance)*Power, depth+1, true);
+			TracePhoton(RefractedRay, (1.f-Reflectance)*Power, nextDepth, true);
 		}
 		else
 		{
 			// Total internal reflection
 			Ray ReflectedRay = R.Reflect(Hit, NdotR);
-			TracePhoton(ReflectedRay, Power, depth+1, bHasRef);
+			TracePhoton(ReflectedRay, Power, nextDepth, bHasRef);
 		}
 	}
 	else if (bHasRef)

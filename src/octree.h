@@ -26,15 +26,15 @@ class OcTree
 	// Break this tree up into 8 cubes
 	void Split()
 	{
-		float halfWidth = Bounds.GetWidth() / 2.f;
-		float halfHeight = Bounds.GetHeight() / 2.f;
-		float halfDepth = Bounds.GetDepth() / 2.f;
-		float l = Bounds.GetLeft();
-		float r = Bounds.GetRight();
-		float t = Bounds.GetTop();
-		float bo = Bounds.GetBottom();
-		float f = Bounds.GetFront();
-		float ba = Bounds.GetBack();
+		double halfWidth = Bounds.GetWidth() / 2.0;
+		double halfHeight = Bounds.GetHeight() / 2.0;
+		double halfDepth = Bounds.GetDepth() / 2.0;
+		double l = Bounds.GetLeft();
+		double r = Bounds.GetRight();
+		double t = Bounds.GetTop();
+		double bo = Bounds.GetBottom();
+		double f = Bounds.GetFront();
+		double ba = Bounds.GetBack();
 
 		// top left front = 0
 		nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));

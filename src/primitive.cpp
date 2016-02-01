@@ -393,7 +393,7 @@ bool clampDist(double& closestDist, const Point3D& WorldRay, const Point3D& Worl
 	return false;
 }
 
-bool CheckCloseHit(const Point3D& WorldRay, const Point3D& WorldHit)
+inline bool CheckCloseHit(const Point3D& WorldRay, const Point3D& WorldHit)
 {
 	return (WorldHit - WorldRay).length() < EPSILON;
 }

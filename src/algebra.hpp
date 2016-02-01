@@ -31,150 +31,6 @@ inline bool IsNearly(const double& a, const double& comp, double EPS = EPSILON)
   return std::abs(a - comp) < EPS;
 }
 
-class Point2D
-{
-public:
-  Point2D()
-  {
-    v_[0] = 0.0;
-    v_[1] = 0.0;
-  }
-  Point2D(double x, double y)
-  { 
-    v_[0] = x;
-    v_[1] = y;
-  }
-  Point2D(const Point2D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-  }
-
-  Point2D& operator =(const Point2D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    return *this;
-  }
-
-  double& operator[](size_t idx) 
-  {
-    return v_[ idx ];
-  }
-  double operator[](size_t idx) const 
-  {
-    return v_[ idx ];
-  }
-
-private:
-  double v_[2];
-};
-
-class Vector2D
-{
-public:
-  Vector2D()
-  {
-    v_[0] = 0.0;
-    v_[1] = 0.0;
-  }
-  Vector2D(double x, double y)
-  { 
-    v_[0] = x;
-    v_[1] = y;
-  }
-  Vector2D(const Vector2D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-  }
-
-  Vector2D& operator =(const Vector2D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    return *this;
-  }
-
-  double& operator[](size_t idx) 
-  {
-    return v_[ idx ];
-  }
-  double operator[](size_t idx) const 
-  {
-    return v_[ idx ];
-  }
-
-  double dot(const Vector2D& other) const
-  {
-    return v_[0]*other.v_[0] + v_[1]*other.v_[1];
-  }
-
-  double length2() const
-  {
-    return v_[0]*v_[0] + v_[1]*v_[1];
-  }
-  double length() const
-  {
-    return sqrt(length2());
-  }
-
-  double normalize();
-
-  double cross(const Vector2D& other) const
-  {
-    return v_[0]*other[1] - v_[1]*other[0];
-  }
-
-private:
-  double v_[2];
-};
-
-inline Vector2D operator *(double s, const Vector2D& v)
-{
-  return Vector2D(s*v[0], s*v[1]);
-}
-
-inline Vector2D operator +(const Vector2D& a, const Vector2D& b)
-{
-  return Vector2D(a[0]+b[0], a[1]+b[1]);
-}
-
-inline Point2D operator +(const Point2D& a, const Vector2D& b)
-{
-  return Point2D(a[0]+b[0], a[1]+b[1]);
-}
-
-inline Point2D operator +(const Point2D& a, const Point2D& b)
-{
-  return Point2D(a[0]+b[0], a[1]+b[1]);
-}
-
-inline Vector2D operator -(const Point2D& a, const Point2D& b)
-{
-  return Vector2D(a[0]-b[0], a[1]-b[1]);
-}
-
-inline Vector2D operator -(const Vector2D& a, const Vector2D& b)
-{
-  return Vector2D(a[0]-b[0], a[1]-b[1]);
-}
-
-inline Vector2D operator -(const Vector2D& a)
-{
-  return Vector2D(-a[0], -a[1]);
-}
-
-inline Point2D operator -(const Point2D& a, const Vector2D& b)
-{
-  return Point2D(a[0]-b[0], a[1]-b[1]);
-}
-
-inline std::ostream& operator <<(std::ostream& os, const Vector2D& v)
-{
-  return os << "v<" << v[0] << "," << v[1] << ">";
-}
-
 class Point3D
 {
 public:
@@ -335,11 +191,6 @@ inline bool operator!=(const Vector3D& a, const Vector3D& b)
   return !IsNearly(a[0], b[0]) || !IsNearly(a[1], b[1]) || !IsNearly(a[2], b[2]);
 }
 
-inline std::ostream& operator <<(std::ostream& os, const Point2D& p)
-{
-  return os << "p<" << p[0] << "," << p[1] << ">";
-}
-
 inline std::ostream& operator <<(std::ostream& os, const Point3D& p)
 {
   return os << "p<" << p[0] << "," << p[1] << "," << p[2] << ">";
@@ -404,6 +255,8 @@ inline Matrix4x4 operator *(const Matrix4x4& a, const Matrix4x4& b);
 class Matrix4x4
 {
 public:
+  using value_type = double;
+
   Matrix4x4()
   {
     // Construct an identity matrix
@@ -440,9 +293,9 @@ public:
     v_[14] = row4[2]; 
     v_[15] = row4[3]; 
   }
-  Matrix4x4(double *vals)
+  Matrix4x4(value_type *vals)
   {
-    std::copy(vals, vals + 16, (double*)v_);
+    std::copy(vals, vals + 16, (value_type*)v_);
   }
 
   Matrix4x4& operator=(const Matrix4x4& other)
@@ -455,9 +308,9 @@ public:
   {
     return Vector4D(v_[4*row], v_[4*row+1], v_[4*row+2], v_[4*row+3]);
   }
-  double *getRow(size_t row) 
+  value_type *getRow(size_t row) 
   {
-    return (double*)v_ + 4*row;
+    return (value_type*)v_ + 4*row;
   }
 
   Vector4D getColumn(size_t col) const
@@ -469,14 +322,14 @@ public:
   {
     return getRow(row);
   }
-  double *operator[](size_t row) 
+  value_type *operator[](size_t row) 
   {
     return getRow(row);
   }
 
-  void rotate(char axis, double angle)
+  void rotate(char axis, value_type angle)
   {
-    double rad = angle * (M_PI/180);
+    value_type rad = angle * (M_PI/180);
     Vector4D R1(1.f, 0.f, 0.f, 0.f),
              R2(0.f, 1.f, 0.f, 0.f),
              R3(0.f, 0.f, 1.f, 0.f),
@@ -527,31 +380,43 @@ public:
   }
   Matrix4x4 invert() const;
 
-  const double *begin() const
+  const value_type *begin() const
   {
-    return (double*)v_;
+    return (value_type*)v_;
   }
-  const double *end() const
+  const value_type *end() const
   {
     return begin() + 16;
   }
 		
 private:
-  double v_[16];
+  value_type v_[16];
 };
 
-// Specialization from fastmath.h
-template<>
-struct MultMtxImpl<Matrix4x4,4,0,0,4*4>
+namespace FastMath
 {
-  static inline void eval(Matrix4x4&, const Matrix4x4&,
-    const Matrix4x4&) {}
-};
+  // Specialization needed by fastmath.h
+  template<>
+  struct MultMtxRowCol<Matrix4x4,4>
+  {
+    static inline auto eval(const Matrix4x4&, const Matrix4x4&,
+      const unsigned, const unsigned)
+    { return 0.0; }
+  };
+
+  // Specialization needed by fastmath.h
+  template<>
+  struct MultMtxImpl<Matrix4x4,4,0,0,4*4>
+  {
+    static inline void eval(Matrix4x4&, const Matrix4x4&,
+      const Matrix4x4&) {}
+  };
+} // namespace FastMath
 
 inline Matrix4x4 operator *(const Matrix4x4& a, const Matrix4x4& b)
 {
   Matrix4x4 ret;
-  MultMtx<Matrix4x4,4>::eval(ret,a,b);
+  FastMath::MultMtx<Matrix4x4,4>::eval(ret,a,b);
   return ret;
 }
 

@@ -146,6 +146,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
   // Refraction enabled?
   if (Hit.Mat->GetRef())
   {
+    unsigned int nextDepth = depth+1;
     double NdotR = R.Direction.dot(Hit.Normal);
     double ni, nt;
     if (NdotR > 0)
@@ -160,7 +161,8 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
       ni = 1.f; nt = Hit.Mat->GetRefIndex();
       NdotR = (-R.Direction).dot(Hit.Normal);
     }
-    double sin2t = (ni/nt)*(ni/nt)*(1.f-NdotR*NdotR); // assumes R.Direction and Hit.Normal are normalized
+    double nint = ni/nt;
+    double sin2t = nint*nint*(1.f-NdotR*NdotR); // assumes R.Direction and Hit.Normal are normalized
 
     if (sin2t <= 1.f)
     {
@@ -192,19 +194,19 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
           // Perturb ray
           GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
           GlossRay.Direction.normalize();
-          TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, depth + 1, Time);
+          TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, nextDepth, Time);
         }
         reflCol = TotalGloss / 8.f;
       }
       else
       {
-        reflCol = TraceRay(ReflectedRay, powerCoef * Reflectance, depth + 1, Time);
+        reflCol = TraceRay(ReflectedRay, powerCoef * Reflectance, nextDepth, Time);
       }
 
       // Refracted ray creation
       Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
       double refrCoef = powerCoef * (1.f - Reflectance);
-      Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, depth + 1, Time);
+      Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, nextDepth, Time);
 
       return reflCol + refrCol;
     }
@@ -212,7 +214,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
     {
       // Total Internal Reflection
       Ray ReflectedRay = R.Reflect(Hit, (-R.Direction).dot(Hit.Normal));
-      return TraceRay(ReflectedRay, powerCoef, depth + 1, Time);
+      return TraceRay(ReflectedRay, powerCoef, nextDepth, Time);
     }
   }
   else
@@ -273,7 +275,7 @@ Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, 
     Total = Total + AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth, Time) +
                     AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth, Time) +
                     AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth, Time) +
-                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);;
+                    AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);
     Total = Total / 8.f;
   }
   // Same colours or too deep
