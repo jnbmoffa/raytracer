@@ -60,6 +60,9 @@ void render(// What to render
   }
   std::cerr << "});" << std::endl;
 
+  Vector4D a(0,0,0,0);
+  std::cout << a.length2() << std::endl;
+
   // Create rendering threads
   std::cout << "Tracing rays..." << std::endl;
   std::unique_ptr<RenderThread> threads[(int)(xDiv*yDiv)];

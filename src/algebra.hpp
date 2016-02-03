@@ -203,52 +203,54 @@ inline std::ostream& operator <<(std::ostream& os, const Vector3D& v)
 
 class Matrix4x4;
 
-class Vector4D
-{
-public:
-  Vector4D()
-  {
-    v_[0] = 0.0;
-    v_[1] = 0.0;
-    v_[2] = 0.0;
-    v_[3] = 0.0;
-  }
-  Vector4D(double x, double y, double z, double w)
-  { 
-    v_[0] = x;
-    v_[1] = y;
-    v_[2] = z;
-    v_[3] = w;
-  }
-  Vector4D(const Vector4D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    v_[2] = other.v_[2];
-    v_[3] = other.v_[3];
-  }
+using Vector4D = FastMath::Vector4D;
+// Leave here as a reference to the old implementation
+// class Vector4D
+// {
+// public:
+//   Vector4D()
+//   {
+//     v_[0] = 0.0;
+//     v_[1] = 0.0;
+//     v_[2] = 0.0;
+//     v_[3] = 0.0;
+//   }
+//   Vector4D(double x, double y, double z, double w)
+//   { 
+//     v_[0] = x;
+//     v_[1] = y;
+//     v_[2] = z;
+//     v_[3] = w;
+//   }
+//   Vector4D(const Vector4D& other)
+//   {
+//     v_[0] = other.v_[0];
+//     v_[1] = other.v_[1];
+//     v_[2] = other.v_[2];
+//     v_[3] = other.v_[3];
+//   }
 
-  Vector4D& operator =(const Vector4D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    v_[2] = other.v_[2];
-    v_[3] = other.v_[3];
-    return *this;
-  }
+//   Vector4D& operator =(const Vector4D& other)
+//   {
+//     v_[0] = other.v_[0];
+//     v_[1] = other.v_[1];
+//     v_[2] = other.v_[2];
+//     v_[3] = other.v_[3];
+//     return *this;
+//   }
 
-  double& operator[](size_t idx) 
-  {
-    return v_[ idx ];
-  }
-  double operator[](size_t idx) const 
-  {
-    return v_[ idx ];
-  }
+//   double& operator[](size_t idx) 
+//   {
+//     return v_[ idx ];
+//   }
+//   double operator[](size_t idx) const 
+//   {
+//     return v_[ idx ];
+//   }
 
-private:
-  double v_[4];
-};
+// private:
+//   double v_[4];
+// };
 
 inline Matrix4x4 operator *(const Matrix4x4& a, const Matrix4x4& b);
 
@@ -400,7 +402,7 @@ namespace FastMath
   struct MultMtxRowCol<Matrix4x4,4>
   {
     static inline auto eval(const Matrix4x4&, const Matrix4x4&,
-      const unsigned, const unsigned)
+      const size_t, const size_t)
     { return 0.0; }
   };
 
