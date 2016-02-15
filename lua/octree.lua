@@ -174,6 +174,6 @@ white_light = gr.light(1, {0.0, 0.0, 50.0}, {1, 1, 1}, {1, 0, 0})
 
 camera = gr.pcamera({0, 0, 5000}, {0, 0, -1}, {0, 1, 0}, 50, 2, 4000)
 
-gr.render(root, '../img/octree.png', 1024, 1024,
+gr.render(root, './img/octree.png', 1024, 1024,
 	  camera,
 	  {0.3, 0.3, 0.3}, {white_light}, {}, 0, 0, 1)

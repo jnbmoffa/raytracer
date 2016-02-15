@@ -1,18 +1,17 @@
-SOURCES = $(wildcard *.cpp)
+srcdir = ./src/
+SOURCES = $(wildcard $(srcdir)*.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 DEPENDS = $(SOURCES:.cpp=.d)
 LDFLAGS = $(shell pkg-config --libs lua5.1) -llua5.1 -lpng -pthread -std=c++14 -O2
 CPPFLAGS = $(shell pkg-config --cflags lua5.1) -pthread -std=c++14 -O2
 CXXFLAGS = $(CPPFLAGS) -W -Wall -g
 CXX = g++
-MAIN = ../rt
+MAIN = rt
 
 all: $(MAIN)
 
-depend: $(DEPENDS)
-
 clean:
-	rm -f *.o *.d $(MAIN)
+	rm -f $(srcdir)*.o $(srcdir)*.d $(MAIN)
 
 $(MAIN): $(OBJECTS)
 	@echo Creating $@...
@@ -22,10 +21,4 @@ $(MAIN): $(OBJECTS)
 	@echo Compiling $<...
 	@$(CXX) -o $@ -c $(CXXFLAGS) $<
 
-%.d: %.cpp
-	@echo Building $@...
-	@set -e; $(CC) -M $(CPPFLAGS) $< \
-                  | sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
-                [ -s $@ ] || rm -f $@
-
-include $(DEPENDS)
+-include $(DEPENDS)

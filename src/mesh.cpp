@@ -38,7 +38,7 @@ bool Mesh::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4&
       Face F = *iter;
       if (F.size() > 2)
       {
-        Vector3D Norm = (m_verts[F[1]] - m_verts[F[0]]).cross(m_verts[F[2]] - m_verts[F[0]]); Norm.normalize();
+        Vector3D Norm = cross((m_verts[F[1]] - m_verts[F[0]]),m_verts[F[2]] - m_verts[F[0]]); Norm.normalize();
         double D = SolveForD(m_verts[F[0]], Norm);
         double S = -(D + (-SolveForD(R.Start, Norm)))/(Norm.dot(R.Direction));
         if (S <= 0) continue;
@@ -63,7 +63,7 @@ bool Mesh::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4&
           Point3D L1 = m_verts[F[it]]; L1[IgnoreIdx] = 0;
           Point3D L2 = m_verts[F[(it+1)%F.size()]]; L2[IgnoreIdx] = 0;
           Vector3D LDir = L2 - L1;
-          Vector3D Cross = Norm.cross(LDir);
+          Vector3D Cross = cross(Norm,LDir);
 
           if ((ProjHit - L1).dot(Cross) > 0) count++;
           else break;

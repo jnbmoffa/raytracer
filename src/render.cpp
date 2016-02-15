@@ -182,8 +182,8 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
       {
         // Glossy
         Ray GlossRay; GlossRay.Start = ReflectedRay.Start;
-        Vector3D u = ReflectedRay.Direction.cross(Hit.Normal);
-        Vector3D v = ReflectedRay.Direction.cross(u);
+        Vector3D u = cross(ReflectedRay.Direction,Hit.Normal);
+        Vector3D v = cross(ReflectedRay.Direction,u);
 
         // TODO: remove magic number 8
         Colour TotalGloss;

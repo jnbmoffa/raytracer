@@ -98,13 +98,25 @@ private:
   double m_size;
 };
 
-bool clampDist(double& closestDist, const Point3D& WorldRay, const Point3D& WorldHit, const Vector3D& Normal, HitInfo& Hit, const Matrix4x4& M);
+inline bool clampDist(double& closestDist, const Point3D& WorldRay, const Point3D& WorldHit, const Vector3D& Normal, HitInfo& Hit, const Matrix4x4& M)
+{
+  double Dist = (WorldHit - WorldRay).length();
+  if (closestDist > Dist && Dist > EPSILON)
+  {
+    closestDist = Dist;
+    Hit.Location = WorldHit;
+    Hit.Normal = Normal;
+    Hit.Normal = transNorm(M.invert(), Hit.Normal);
+    return true;
+  }
+  return false;
+}
 
 bool CheckCloseHit(const Point3D& WorldRay, const Point3D& WorldHit);
 
 inline double SolveForD(Point3D P, Vector3D N)
 {
-  return -(P[0]*N[0] + P[1]*N[1] +P[2]*N[2]);
+  return -P[0]*N[0] - P[1]*N[1] - P[2]*N[2];
 }
 
 #endif

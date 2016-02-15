@@ -68,6 +68,6 @@ white_light = gr.light(12000, {0.0, 29.0, 0.0}, {1, 1, 1}, {1, 0, 0})
 
 camera = gr.pcamera({0, 15, 40}, {0, 0, -1}, {0, 1, 0}, 50, 0.1, 40)
 
-gr.render(root, '../img/conecyl.png', 1024, 1024,
+gr.render(root, './img/conecyl.png', 1024, 1024,
 	  camera,
 	  {0.3, 0.3, 0.3}, {white_light}, {}, 0, 0, 1)

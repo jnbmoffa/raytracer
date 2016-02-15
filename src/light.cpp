@@ -34,8 +34,8 @@ double SphereLight::GetIntensity(SceneContainer* Scene, const Point3D& TestLoc, 
 {
   Vector3D Normal = TestLoc - position; Normal.normalize();
   Matrix4x4 Rot; Rot.rotate('x', 45); // Potential error if Normal = x axis
-  Vector3D u = (Rot * Normal).cross(Normal); u.normalize(); u = radius*u;
-  Vector3D v = Normal.cross(u); v.normalize(); v = radius*v;
+  Vector3D u = cross((Rot * Normal),Normal); u.normalize(); u = radius*u;
+  Vector3D v = cross(Normal,u); v.normalize(); v = radius*v;
   int NumVisiblePoints = 0;
   double theta=0.f, RingInc = 1.f/(double)NumRings, AngleInc = (2*M_PI)/(double)RingPoints;
 

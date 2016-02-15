@@ -24,182 +24,178 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define EPSILON 0.0001
+using Point3D = FastMath::Point3D;
+// class Point3D
+// {
+// public:
+//   Point3D()
+//   {
+//     v_[0] = 0.0;
+//     v_[1] = 0.0;
+//     v_[2] = 0.0;
+//   }
+//   Point3D(double x, double y, double z)
+//   { 
+//     v_[0] = x;
+//     v_[1] = y;
+//     v_[2] = z;
+//   }
+//   Point3D(const Point3D& other)
+//   {
+//     v_[0] = other.v_[0];
+//     v_[1] = other.v_[1];
+//     v_[2] = other.v_[2];
+//   }
 
-inline bool IsNearly(const double& a, const double& comp, double EPS = EPSILON)
-{
-  return std::abs(a - comp) < EPS;
-}
+//   Point3D& operator =(const Point3D& other)
+//   {
+//     v_[0] = other.v_[0];
+//     v_[1] = other.v_[1];
+//     v_[2] = other.v_[2];
+//     return *this;
+//   }
 
-class Point3D
-{
-public:
-  Point3D()
-  {
-    v_[0] = 0.0;
-    v_[1] = 0.0;
-    v_[2] = 0.0;
-  }
-  Point3D(double x, double y, double z)
-  { 
-    v_[0] = x;
-    v_[1] = y;
-    v_[2] = z;
-  }
-  Point3D(const Point3D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    v_[2] = other.v_[2];
-  }
+//   double& operator[](size_t idx) 
+//   {
+//     return v_[ idx ];
+//   }
+//   double operator[](size_t idx) const 
+//   {
+//     return v_[ idx ];
+//   }
 
-  Point3D& operator =(const Point3D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    v_[2] = other.v_[2];
-    return *this;
-  }
+// private:
+//   double v_[3];
+// };
 
-  double& operator[](size_t idx) 
-  {
-    return v_[ idx ];
-  }
-  double operator[](size_t idx) const 
-  {
-    return v_[ idx ];
-  }
 
-private:
-  double v_[3];
-};
+using Vector3D = FastMath::Vector3D;
+// class Vector3D
+// {
+// public:
+//   Vector3D()
+//   {
+//     v_[0] = 0.0;
+//     v_[1] = 0.0;
+//     v_[2] = 0.0;
+//   }
+//   Vector3D(double x, double y, double z)
+//   { 
+//     v_[0] = x;
+//     v_[1] = y;
+//     v_[2] = z;
+//   }
+//   Vector3D(const Vector3D& other)
+//   {
+//     v_[0] = other.v_[0];
+//     v_[1] = other.v_[1];
+//     v_[2] = other.v_[2];
+//   }
 
-class Vector3D
-{
-public:
-  Vector3D()
-  {
-    v_[0] = 0.0;
-    v_[1] = 0.0;
-    v_[2] = 0.0;
-  }
-  Vector3D(double x, double y, double z)
-  { 
-    v_[0] = x;
-    v_[1] = y;
-    v_[2] = z;
-  }
-  Vector3D(const Vector3D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    v_[2] = other.v_[2];
-  }
+//   Vector3D& operator =(const Vector3D& other)
+//   {
+//     v_[0] = other.v_[0];
+//     v_[1] = other.v_[1];
+//     v_[2] = other.v_[2];
+//     return *this;
+//   }
 
-  Vector3D& operator =(const Vector3D& other)
-  {
-    v_[0] = other.v_[0];
-    v_[1] = other.v_[1];
-    v_[2] = other.v_[2];
-    return *this;
-  }
+//   double& operator[](size_t idx) 
+//   {
+//     return v_[ idx ];
+//   }
+//   double operator[](size_t idx) const 
+//   {
+//     return v_[ idx ];
+//   }
 
-  double& operator[](size_t idx) 
-  {
-    return v_[ idx ];
-  }
-  double operator[](size_t idx) const 
-  {
-    return v_[ idx ];
-  }
+//   double dot(const Vector3D& other) const
+//   {
+//     return v_[0]*other.v_[0] + v_[1]*other.v_[1] + v_[2]*other.v_[2];
+//   }
 
-  double dot(const Vector3D& other) const
-  {
-    return v_[0]*other.v_[0] + v_[1]*other.v_[1] + v_[2]*other.v_[2];
-  }
+//   double length2() const
+//   {
+//     return v_[0]*v_[0] + v_[1]*v_[1] + v_[2]*v_[2];
+//   }
+//   double length() const
+//   {
+//     return sqrt(length2());
+//   }
 
-  double length2() const
-  {
-    return v_[0]*v_[0] + v_[1]*v_[1] + v_[2]*v_[2];
-  }
-  double length() const
-  {
-    return sqrt(length2());
-  }
+//   double normalize();
 
-  double normalize();
+//   Vector3D cross(const Vector3D& other) const
+//   {
+//     return Vector3D(
+//                     v_[1]*other[2] - v_[2]*other[1],
+//                     v_[2]*other[0] - v_[0]*other[2],
+//                     v_[0]*other[1] - v_[1]*other[0]);
+//   }
 
-  Vector3D cross(const Vector3D& other) const
-  {
-    return Vector3D(
-                    v_[1]*other[2] - v_[2]*other[1],
-                    v_[2]*other[0] - v_[0]*other[2],
-                    v_[0]*other[1] - v_[1]*other[0]);
-  }
+// private:
+//   double v_[3];
+// };
 
-private:
-  double v_[3];
-};
+// inline Vector3D operator *(double s, const Vector3D& v)
+// {
+//   return Vector3D(s*v[0], s*v[1], s*v[2]);
+// }
 
-inline Vector3D operator *(double s, const Vector3D& v)
-{
-  return Vector3D(s*v[0], s*v[1], s*v[2]);
-}
+// inline Vector3D operator +(const Vector3D& a, const Vector3D& b)
+// {
+//   return Vector3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
+// }
 
-inline Vector3D operator +(const Vector3D& a, const Vector3D& b)
-{
-  return Vector3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
-}
+// inline Point3D operator +(const Point3D& a, const Vector3D& b)
+// {
+//   return Point3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
+// }
 
-inline Point3D operator +(const Point3D& a, const Vector3D& b)
-{
-  return Point3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
-}
+// inline Point3D operator +(const Point3D& a, const Point3D& b)
+// {
+//   return Point3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
+// }
 
-inline Point3D operator +(const Point3D& a, const Point3D& b)
-{
-  return Point3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
-}
+// inline Vector3D operator -(const Point3D& a, const Point3D& b)
+// {
+//   return Vector3D(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+// }
 
-inline Vector3D operator -(const Point3D& a, const Point3D& b)
-{
-  return Vector3D(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
-}
+// inline Vector3D operator -(const Vector3D& a, const Vector3D& b)
+// {
+//   return Vector3D(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+// }
 
-inline Vector3D operator -(const Vector3D& a, const Vector3D& b)
-{
-  return Vector3D(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
-}
+// inline Vector3D operator -(const Vector3D& a)
+// {
+//   return Vector3D(-a[0], -a[1], -a[2]);
+// }
 
-inline Vector3D operator -(const Vector3D& a)
-{
-  return Vector3D(-a[0], -a[1], -a[2]);
-}
+// inline Point3D operator -(const Point3D& a, const Vector3D& b)
+// {
+//   return Point3D(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+// }
 
-inline Point3D operator -(const Point3D& a, const Vector3D& b)
-{
-  return Point3D(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
-}
+// inline Vector3D cross(const Vector3D& a, const Vector3D& b) 
+// {
+//   return a.cross(b);
+// }
 
-inline Vector3D cross(const Vector3D& a, const Vector3D& b) 
-{
-  return a.cross(b);
-}
+// inline bool operator!=(const Vector3D& a, const Vector3D& b)
+// {
+//   return !IsNearly(a[0], b[0]) || !IsNearly(a[1], b[1]) || !IsNearly(a[2], b[2]);
+// }
 
-inline bool operator!=(const Vector3D& a, const Vector3D& b)
-{
-  return !IsNearly(a[0], b[0]) || !IsNearly(a[1], b[1]) || !IsNearly(a[2], b[2]);
-}
+// inline std::ostream& operator <<(std::ostream& os, const Point3D& p)
+// {
+//   return os << "p<" << p[0] << "," << p[1] << "," << p[2] << ">";
+// }
 
-inline std::ostream& operator <<(std::ostream& os, const Point3D& p)
-{
-  return os << "p<" << p[0] << "," << p[1] << "," << p[2] << ">";
-}
-
-inline std::ostream& operator <<(std::ostream& os, const Vector3D& v)
-{
-  return os << "v<" << v[0] << "," << v[1] << "," << v[2] << ">";
-}
+// inline std::ostream& operator <<(std::ostream& os, const Vector3D& v)
+// {
+//   return os << "v<" << v[0] << "," << v[1] << "," << v[2] << ">";
+// }
 
 class Matrix4x4;
 
@@ -526,7 +522,7 @@ private:
 
 inline bool operator ==(const Colour& a, const Colour& b)
 {
-  return IsNearly(a.R(), b.R(), 0.05) && IsNearly(a.G(), b.G(), 0.05) && IsNearly(a.B(), b.B(), 0.05);
+  return FastMath::IsNearly(a.R(), b.R(), 0.05) && FastMath::IsNearly(a.G(), b.G(), 0.05) && FastMath::IsNearly(a.B(), b.B(), 0.05);
 }
 
 inline bool operator !=(const Colour& a, const Colour& b)

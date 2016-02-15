@@ -379,19 +379,19 @@ bool NonhierBox::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matr
 	return ret;
 }
 
-bool clampDist(double& closestDist, const Point3D& WorldRay, const Point3D& WorldHit, const Vector3D& Normal, HitInfo& Hit, const Matrix4x4& M)
-{
-	double Dist = (WorldHit - WorldRay).length();
-	if (closestDist > Dist && Dist > EPSILON)
-	{
-		closestDist = Dist;
-		Hit.Location = WorldHit;
-		Hit.Normal = Normal;
-		Hit.Normal = transNorm(M.invert(), Hit.Normal);
-		return true;
-	}
-	return false;
-}
+// bool clampDist(double& closestDist, const Point3D& WorldRay, const Point3D& WorldHit, const Vector3D& Normal, HitInfo& Hit, const Matrix4x4& M)
+// {
+// 	double Dist = (WorldHit - WorldRay).length();
+// 	if (closestDist > Dist && Dist > EPSILON)
+// 	{
+// 		closestDist = Dist;
+// 		Hit.Location = WorldHit;
+// 		Hit.Normal = Normal;
+// 		Hit.Normal = transNorm(M.invert(), Hit.Normal);
+// 		return true;
+// 	}
+// 	return false;
+// }
 
 inline bool CheckCloseHit(const Point3D& WorldRay, const Point3D& WorldHit)
 {

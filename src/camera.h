@@ -34,7 +34,7 @@ protected:
 		// Set up the camera direction vectors
 		m_data.view.normalize();
 		m_data.up = -m_data.up; m_data.up.normalize();
-		m_data.right = m_data.up.cross(m_data.view); m_data.right.normalize();
+		m_data.right = cross(m_data.up,m_data.view); m_data.right.normalize();
 		
 		// Calculate aperture radius
 		m_xApertureRadius = m_data.ApertureRadius * m_data.right;

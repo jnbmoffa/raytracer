@@ -38,7 +38,7 @@ Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std:
 
 		// Shadows
 		double LightIntensity = L->GetIntensity(Scene, Hit.Location, Time);
-		if (IsNearly(LightIntensity, 0.f)) continue;
+		if (FastMath::IsNearly(LightIntensity, 0.f)) continue;
 
 		// Diffuse
 		Vector3D LightDir = L->position - Hit.Location; LightDir.normalize();
