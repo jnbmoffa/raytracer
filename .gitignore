@@ -1,5 +1,7 @@
 *.png
 *.*~
+*.tz
+*.txt
 rt
 
 # Compiled Object files

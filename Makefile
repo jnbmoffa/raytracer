@@ -1,24 +1,40 @@
-srcdir = ./src/
-SOURCES = $(wildcard $(srcdir)*.cpp)
-OBJECTS = $(SOURCES:.cpp=.o)
+sourceDir=./src/
+privateDir=$(sourceDir)private/
+publicDir=$(sourceDir)public/
+objectDir=$(sourceDir)obj/
+
+INC=$(privateDir) $(publicDir)
+INC_PARAMS=$(INC:%=-I%)
+
+SOURCES = $(wildcard $(privateDir)*.cpp)
+OBJECTS = $(patsubst $(privateDir)%.cpp,$(objectDir)%.o,$(SOURCES))
 DEPENDS = $(SOURCES:.cpp=.d)
-LDFLAGS = $(shell pkg-config --libs lua5.1) -llua5.1 -lpng -pthread -std=c++14 -O2
-CPPFLAGS = $(shell pkg-config --cflags lua5.1) -pthread -std=c++14 -O2
+
+LUAFLAGS = $(shell pkg-config --cflags lua5.1) -llua5.1
+CPPFLAGS = $(LUAFLAGS) -lpng -pthread -std=c++14 -O2
 CXXFLAGS = $(CPPFLAGS) -W -Wall -g
+
 CXX = g++
 MAIN = rt
 
-all: $(MAIN)
+all: $(MAIN) MKDIR
 
 clean:
-	rm -f $(srcdir)*.o $(srcdir)*.d $(MAIN)
+	@echo Cleaning...
+	@rm -f $(sourceDir)*.o $(sourceDir)*.d $(MAIN)
 
 $(MAIN): $(OBJECTS)
 	@echo Creating $@...
-	@$(CXX) -o $@ $(OBJECTS) $(LDFLAGS)
+	@$(CXX) -o $@ $(OBJECTS) $(INC_PARAMS) $(CPPFLAGS)
 
-%.o: %.cpp
+#Generate objects
+$(objectDir)%.o: $(privateDir)%.cpp
 	@echo Compiling $<...
-	@$(CXX) -o $@ -c $(CXXFLAGS) $<
+	@mkdir -p $(@D)
+	@$(CXX) -o $@ -c $(CXXFLAGS) $(INC_PARAMS) $<
+
+MKDIR:
+	@echo Creating image directory...
+	@mkdir -p ./img
 
 -include $(DEPENDS)

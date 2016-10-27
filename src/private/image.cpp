@@ -80,7 +80,7 @@ bool Image::savePng(const std::string& filename)
   FILE* fout = std::fopen(filename.c_str(), "wb");
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   png_infop info_ptr = png_create_info_struct(png_ptr);
-  setjmp(png_ptr->jmpbuf);
+  setjmp(png_jmpbuf(png_ptr));
 
   /* Setup PNG I/O */
   png_init_io(png_ptr, fout);
@@ -92,7 +92,7 @@ bool Image::savePng(const std::string& filename)
   png_set_filter(png_ptr, 0, PNG_FILTER_PAETH);
 
   /* Setup compression level. */
-  png_set_compression_level(png_ptr, Z_BEST_COMPRESSION);
+  //png_set_compression_level(png_ptr, Z_BEST_COMPRESSION);
 
   /* Setup PNG header information and write it to the file */
 
@@ -144,7 +144,7 @@ bool Image::savePng(const std::string& filename)
   // closing and freeing the structs
   png_write_end(png_ptr, info_ptr);
   png_destroy_write_struct(&png_ptr, &info_ptr);
-  fclose(fout);
+  std::fclose(fout);
 
   return true;
 }
