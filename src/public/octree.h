@@ -231,7 +231,7 @@ public:
 	}
 
 	// Get the objects that might be hit by the ray
-	bool Trace(Array<OctObjectType*>& returnObjects, const Ray& r)
+	bool Trace(Array<OctObjectType*>& returnObjects, const Ray& r) const
 	{
 		if ( (nodes.Num() > 0 || objects.Num() > 0) && Bounds.Intersects(r))
 		{

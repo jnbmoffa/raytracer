@@ -10,10 +10,12 @@ struct LuaCamera {
     double fov, ApertureRadius, FocalDistance;
     int DOFRays;
 
-    LuaCamera() :   eye(0.f,0.f,0.f),
-                    view(0.f,0.f,-1.f),
-                    up(0.f,1.f,0.f),
-                    fov(50.f),
-                    ApertureRadius(1.4f),
-                    FocalDistance(1.f) {}
+    LuaCamera() :
+        eye(0.f, 0.f, 0.f),
+        view(0.f, 0.f, -1.f),
+        up(0.f, 1.f, 0.f),
+        fov(50.f),
+        ApertureRadius(1.4f),
+        FocalDistance(1.f)
+    {}
 };

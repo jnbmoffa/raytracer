@@ -97,7 +97,7 @@ void PhotonMap::BuildTree()
 	}
 }
 
-void PhotonMap::LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2)
+void PhotonMap::LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2) const
 {
 	Photon P(CheckLoc, Colour(), Vector3D());
 	Tree.LocateNearby(OutArray, P, SearchDistSq, MaxDist2);

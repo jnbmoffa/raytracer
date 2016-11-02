@@ -18,7 +18,7 @@ PhongMaterial::~PhongMaterial()
 {
 }
 
-Colour PhongMaterial::DoLighting(SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time)
+Colour PhongMaterial::DoLighting(const SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time)
 {
 	// Lighting
 	// Ambient

@@ -10,8 +10,9 @@ SOURCES = $(wildcard $(privateDir)*.cpp)
 OBJECTS = $(patsubst $(privateDir)%.cpp,$(objectDir)%.o,$(SOURCES))
 DEPENDS = $(SOURCES:.cpp=.d)
 
+OPTIMIZATION = -O2
 LUAFLAGS = $(shell pkg-config --cflags lua5.1) -llua5.1
-CPPFLAGS = $(LUAFLAGS) -lpng -pthread -std=c++14 -O2
+CPPFLAGS = $(LUAFLAGS) -lpng -pthread -std=c++14 $(OPTIMIZATION)
 CXXFLAGS = $(CPPFLAGS) -W -Wall -g
 
 CXX = g++
@@ -21,7 +22,7 @@ all: $(MAIN) MKDIR
 
 clean:
 	@echo Cleaning...
-	@rm -f $(sourceDir)*.o $(sourceDir)*.d $(MAIN)
+	@rm -f $(objectDir)*.o $(objectDir)*.d $(MAIN)
 
 $(MAIN): $(OBJECTS)
 	@echo Creating $@...

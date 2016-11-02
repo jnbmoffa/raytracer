@@ -12,9 +12,9 @@ int main(int argc, char** argv)
 
   int c;
   while ((c = getopt(argc, argv, ":t:s:oa")) != -1) {
-    switch(c) {
+    switch (c) {
     case 't': // number of render threads
-      xDiv = yDiv = atoi(optarg);
+      numThreads = atoi(optarg);
       break;
     case 's': // supersampling
       SuperSamples = atoi(optarg);
@@ -37,11 +37,11 @@ int main(int argc, char** argv)
       break;
     case ':':
       fprintf(stderr,
-          "Option -%c requires an operand\n", optopt);
+              "Option -%c requires an operand\n", optopt);
       break;
     case '?':
       fprintf(stderr,
-          "Unrecognized option: '-%c'\n", optopt);
+              "Unrecognized option: '-%c'\n", optopt);
     }
   }
 

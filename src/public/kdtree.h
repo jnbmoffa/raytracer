@@ -42,7 +42,7 @@ class KDTree
 
 		// Find all KDType elements within SearchDistSq square units from the CheckLoc
 		// MaxDist2 will be the square dist to the furthest away KDType element returned
-		void LocateNearby(Array<KDType*>& OutArray, const KDType& CheckLoc, const double& SearchDistSq, double& MaxDist2, int depth = 0)
+		void LocateNearby(Array<KDType*>& OutArray, const KDType& CheckLoc, const double& SearchDistSq, double& MaxDist2, int depth = 0) const
 		{
 			int axis = depth % K;
 			if (Left || Right)
@@ -150,7 +150,7 @@ public:
 
 	// Find all KDType elements within SearchDistSq square units from the CheckLoc
 	// MaxDist2 will be the square dist to the furthest away KDType element returned
-	void LocateNearby(Array<KDType*>& OutArray, const KDType& CheckLoc, const double& SearchDistSq, double& MaxDist2)
+	void LocateNearby(Array<KDType*>& OutArray, const KDType& CheckLoc, const double& SearchDistSq, double& MaxDist2) const
 	{
 		if(Root) Root->LocateNearby(OutArray, CheckLoc, SearchDistSq, MaxDist2);
 	}

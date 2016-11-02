@@ -11,14 +11,14 @@ using atomic_int = std::atomic<int>;
 using ThreadID = std::thread::id;
 
 // Mutual exclusion
-using MutexLock = std::mutex;
+using Mutex = std::mutex;
 using OwnerLock = std::recursive_mutex;
 
 // Synchronization
 using CondLock = std::condition_variable_any;
 
-using ScopeLock = std::unique_lock<MutexLock>;
-using ScopeOwnerLock = std::unique_lock<OwnerLock>;
+using ScopeLock = std::lock_guard<Mutex>;
+using ScopeOwnerLock = std::lock_guard<OwnerLock>;
 
 // Number of available cores
 inline unsigned int GetNumCores()

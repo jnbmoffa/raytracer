@@ -13,7 +13,7 @@ Light::Light()
   falloff[2] = 0.0;
 }
 
-bool Light::IsVisibleFrom(SceneContainer* Scene, const Point3D& LightLoc, const Point3D& TestLoc, const double& Time)
+bool Light::IsVisibleFrom(const SceneContainer* Scene, const Point3D& LightLoc, const Point3D& TestLoc, const double& Time)
 {
   Vector3D PtToLight = LightLoc - TestLoc;
   double LightDist = PtToLight.length();
@@ -24,32 +24,32 @@ bool Light::IsVisibleFrom(SceneContainer* Scene, const Point3D& LightLoc, const 
   return true;
 }
 
-double Light::GetIntensity(SceneContainer* Scene, const Point3D& TestLoc, const double& Time)
+double Light::GetIntensity(const SceneContainer* Scene, const Point3D& TestLoc, const double& Time)
 {
   if (IsVisibleFrom(Scene, position, TestLoc, Time)) return 1.f;
   return 0.f;
 }
 
-double SphereLight::GetIntensity(SceneContainer* Scene, const Point3D& TestLoc, const double& Time)
+double SphereLight::GetIntensity(const SceneContainer* Scene, const Point3D& TestLoc, const double& Time)
 {
   Vector3D Normal = TestLoc - position; Normal.normalize();
   Matrix4x4 Rot; Rot.rotate('x', 45); // Potential error if Normal = x axis
-  Vector3D u = cross((Rot * Normal),Normal); u.normalize(); u = radius*u;
-  Vector3D v = cross(Normal,u); v.normalize(); v = radius*v;
+  Vector3D u = cross((Rot * Normal), Normal); u.normalize(); u = radius * u;
+  Vector3D v = cross(Normal, u); v.normalize(); v = radius * v;
   int NumVisiblePoints = 0;
-  double theta=0.f, RingInc = 1.f/(double)NumRings, AngleInc = (2*M_PI)/(double)RingPoints;
+  double theta = 0.f, RingInc = 1.f / (double)NumRings, AngleInc = (2 * M_PI) / (double)RingPoints;
 
   // Sum up the intensity of the visible points on the light
-  for (double i=RingInc;i<1.f;i+=RingInc)
+  for (double i = RingInc; i < 1.f; i += RingInc)
   {
-    for (int j=0;j<4;j++)
+    for (int j = 0; j < 4; j++)
     {
-      if (IsVisibleFrom(Scene, position + i*sin(theta)*u + i*cos(theta)*v, TestLoc, Time)) NumVisiblePoints++;
-      theta+=AngleInc;
+      if (IsVisibleFrom(Scene, position + i * sin(theta)*u + i * cos(theta)*v, TestLoc, Time)) NumVisiblePoints++;
+      theta += AngleInc;
     }
-    theta-=3.f*(AngleInc);
+    theta -= 3.f * (AngleInc);
   }
-  return (double)NumVisiblePoints/((double)RingPoints*NumRings);
+  return (double)NumVisiblePoints / ((double)RingPoints * NumRings);
 }
 
 std::ostream& operator<<(std::ostream& out, const Light& l)

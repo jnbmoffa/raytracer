@@ -38,5 +38,5 @@ public:
 
 	// Find all photons within SearchDistSq square units from the CheckLoc
 	// MaxDist2 will be the square dist to the furthest away photon returned
-	void LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2);
+	void LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2) const;
 };

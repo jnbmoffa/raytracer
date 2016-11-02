@@ -17,7 +17,7 @@ std::unique_ptr<Camera> CreateCamera(   const std::shared_ptr<LuaCamera>& luaCam
 
 std::ostream& operator<<(std::ostream& out, const Camera& c)
 {
-    auto& cam = c.m_data;
+    auto& cam = c.m_luaCamera;
     return out  << "Camera[" << cam.eye << ", " << cam.view << ", " << cam.up << ", " << cam.fov
                 << ", " << cam.ApertureRadius << ", " << cam.FocalDistance << "]";
 }

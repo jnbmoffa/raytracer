@@ -16,9 +16,9 @@ class SceneContainer
 protected:
 	std::vector<std::unique_ptr<SceneNode>>* Nodes;
 	PhotonMap PMap;
-	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time);
-	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit);
-	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist);
+	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time) const;
+	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) const;
+	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist) const;
 
 public:
 	const std::list<std::unique_ptr<Light>>* lights;
@@ -31,25 +31,25 @@ public:
 
 	// Find all photons within SearchDistSq square units from the CheckLoc
 	// MaxDist2 will be the square dist to the furthest away photon returned
-	void LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2);
+	void LocatePhotons(Array<Photon*>& OutArray, const Point3D& CheckLoc, const double& SearchDistSq, double& MaxDist2) const;
 
-	inline unsigned int MappedPhotons() { return PMap.NumPhotons(); }
+	inline unsigned int MappedPhotons() const { return PMap.NumPhotons(); }
 
 	// Trace types
-	bool TimeRayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient, const double& Time);
-	bool RayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient);
-	bool PhotonTrace(const Ray& R, HitInfo& Hit);
-	bool TimeDepthTrace(const Ray& R, double& dist, const double& Time);
-	bool DepthTrace(const Ray& R, double& dist);
+	bool TimeRayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient, const double& Time) const;
+	bool RayTrace(Colour& OutCol, const Ray& R, HitInfo& Hit, const Colour& ambient) const;
+	bool PhotonTrace(const Ray& R, HitInfo& Hit) const;
+	bool TimeDepthTrace(const Ray& R, double& dist, const double& Time) const;
+	bool DepthTrace(const Ray& R, double& dist) const;
 };
 
 class OctreeSceneContainer : public SceneContainer
 {
 	OcTree<SceneNode> Tree;
 protected:
-	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time);
-	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) override;
-	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist) override;
+	virtual bool ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time) const override;
+	virtual bool ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) const override;
+	virtual bool ContainerSpecificDepthTrace(const Ray& R, double& dist) const override;
 
 public:
  	virtual ~OctreeSceneContainer() {}
