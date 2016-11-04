@@ -11,7 +11,7 @@ public:
 
     PixelQueue(DimensionType maxX, DimensionType maxY);
 
-    /** 
+    /**
      *  Get the next pixel in the queue
      *  @return the next pixel or NullPixel if no more exist
      */

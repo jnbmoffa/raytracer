@@ -11,10 +11,10 @@
 atomic_int PROGRESS(0);
 
 // TODO: get rid of all globals
-uint16_t numThreads = 1, SuperSamples = 1; // AA
+size_t numThreads = 1, SuperSamples = 1; // AA
 bool bUseOctree = false, bUseAdaptive = false;
 
-void render(// What to render
+void render( // What to render
     std::unique_ptr<SceneNode>&& root,
     // Where to output the image
     const std::string& filename,
@@ -33,6 +33,7 @@ void render(// What to render
     // Scene setup
     std::vector<std::unique_ptr<SceneNode>> List;
     root->FlattenScene(List);
+
     std::unique_ptr<SceneContainer> Scene;
     if (bUseOctree)
     {
@@ -54,18 +55,18 @@ void render(// What to render
               << filename << ", " << width << ", " << height << ",\n     "
               << *cam << ",\n     "
               << ambient << ",\n     {";
-    for (auto I = lights.cbegin(); I != lights.cend(); ++I) {
-        if (I != lights.cbegin()) std::cerr << ", ";
-        std::cerr << **I;
+    for (auto Iter = lights.cbegin(); Iter != lights.cend(); ++Iter)
+    {
+        if (Iter != lights.cbegin())
+        {
+            std::cerr << ", ";
+        }
+        std::cerr << **Iter;
     }
     std::cerr << "});" << std::endl;
 
-    Vector4D a(0, 0, 0, 0);
-    std::cout << a.length2() << std::endl;
-
     // Setup pixel queue for render threads
     std::unique_ptr<PixelQueue> pixelQueue = std::make_unique<PixelQueue>(width - 1, height - 1);
-
     // Setup shared render data
     RenderData renderData;
     renderData.m_scene = Scene.get();
@@ -80,7 +81,7 @@ void render(// What to render
     std::cout << "Tracing rays..." << std::endl;
     std::unique_ptr<RenderThread> threads[numThreads];
 
-    for (int16_t threadNum = 0; threadNum < numThreads; ++threadNum)
+    for (size_t threadNum = 0; threadNum < numThreads; ++threadNum)
     {
         if (bUseAdaptive)
         {
@@ -99,12 +100,13 @@ void render(// What to render
     // Status bar
     while (PROGRESS < width * height)
     {
-        std::cout << std::fixed << (PROGRESS / static_cast<float>(width * height)) * 100.f << "\%\xd"; std::cout.flush();
-        SleepMicro(50000);  // Sleep so minimal CPU is used for this
+        std::cout << std::fixed << (PROGRESS / static_cast<float>(width * height)) * 100.0 << "\%\xd";
+        std::cout.flush();
+        SleepMicro(50000);   // Sleep so minimal CPU is used for this
     }
 
     // Wait for threads to finish
-    for (int j = 0; j < numThreads; j++)
+    for (size_t j = 0; j < numThreads; j++)
     {
         threads[j]->Join();
     }
@@ -144,72 +146,84 @@ void RenderThread::Main()
 
 inline Colour RenderThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
-    Ray R = m_renderData.m_normCam->GetRayThroughPixel(x, y, 0.5f, 0.5f);
-    return TraceRay(R, 1.f, 0, Time);
+    Ray ray = m_renderData.m_normCam->GetRayThroughPixel(x, y, 0.5f, 0.5f);
+    return TraceRay(ray, 1.0, 0, Time);
 }
 
-Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, const double& Time)
+Colour RenderThread::TraceRay(Ray& ray, double powerCoef, unsigned int depth, const double& Time)
 {
-    if (powerCoef <= 0.05 || depth >= 9) return Colour();
+    if (powerCoef <= 0.05 || depth >= 9)
+    {
+        return Colour::Black;
+    }
 
     Colour TraceColour(0, 0, 0);
     HitInfo Hit;
-    if (!m_renderData.m_scene->TimeRayTrace(TraceColour, R, Hit, *(m_renderData.m_ambient), Time)) return Colour();
+    if (!m_renderData.m_scene->TimeRayTrace(TraceColour, ray, Hit, *(m_renderData.m_ambient), Time))
+    {
+        return Colour::Black;
+    }
 
     // Refraction enabled?
     if (Hit.Mat->GetRef())
     {
-        unsigned int nextDepth = depth + 1;
-        double NdotR = R.Direction.dot(Hit.Normal);
+        const unsigned int nextDepth = depth + 1;
+
+        double NdotR = ray.Direction.dot(Hit.Normal);
         double ni, nt;
         if (NdotR > 0)
         {
             // Leaving object
-            ni = Hit.Mat->GetRefIndex(); nt = 1.f;
+            ni = Hit.Mat->GetRefIndex();
+            nt = 1.0;
             Hit.Normal = -Hit.Normal;
         }
         else
         {
             // Entering object
-            ni = 1.f; nt = Hit.Mat->GetRefIndex();
-            NdotR = (-R.Direction).dot(Hit.Normal);
+            ni = 1.0;
+            nt = Hit.Mat->GetRefIndex();
+            NdotR = (-ray.Direction).dot(Hit.Normal);
         }
-        double nint = ni / nt;
-        double sin2t = nint * nint * (1.f - NdotR * NdotR); // assumes R.Direction and Hit.Normal are normalized
+        const double nint = ni / nt;
+        const double sin2t = nint * nint * (1.0 - NdotR * NdotR);   // assumes ray.Direction and Hit.Normal are normalized
 
-        if (sin2t <= 1.f)
+        if (sin2t <= 1.0)
         {
             // Fresnel
-            double cost = sqrt(1.f - sin2t);
-            double R1 = (ni * NdotR - nt * cost) / (ni * NdotR + nt * cost); R1 *= R1;
-            double R2 = (nt * NdotR - ni * cost) / (nt * NdotR + ni * cost); R2 *= R2;
-            double Reflectance = (R1 + R2) / 2.f;
+            const double cost = sqrt(1.0 - sin2t);
+            double R1 = (ni * NdotR - nt * cost) / (ni * NdotR + nt * cost);
+            R1 *= R1;
+            double R2 = (nt * NdotR - ni * cost) / (nt * NdotR + ni * cost);
+            R2 *= R2;
+            const double Reflectance = (R1 + R2) * 0.5;
 
             // Reflected ray creation
-            Ray ReflectedRay = R.Reflect(Hit, NdotR);
+            Ray ReflectedRay = ray.Reflect(Hit, NdotR);
             Colour reflCol;
-            if (Hit.Mat->GetGloss() > 0.f)
+            if (Hit.Mat->GetGloss() > 0.0)
             {
                 // Glossy
-                Ray GlossRay; GlossRay.Start = ReflectedRay.Start;
-                Vector3D u = cross(ReflectedRay.Direction, Hit.Normal);
-                Vector3D v = cross(ReflectedRay.Direction, u);
+                Ray GlossRay;
+                GlossRay.Start = ReflectedRay.Start;
+                const Vector3D u = cross(ReflectedRay.Direction, Hit.Normal);
+                const Vector3D v = cross(ReflectedRay.Direction, u);
 
                 // TODO: remove magic number 8
                 Colour TotalGloss;
                 for (int i = 0; i < 8; i++)
                 {
-                    double theta = acos(pow((1.f - RefrDistribution(generator)), 1.f / (Hit.Mat->GetGloss() + 1.f)));
-                    double phi = 2.f * M_PI * RefrDistribution(generator);
-                    double x = sin(theta) * cos(phi);
-                    double y = sin(theta) * sin(phi);
+                    const double theta = acos(pow((1.0 - RefrDistribution(generator)), 1.0 / (Hit.Mat->GetGloss() + 1.0)));
+                    const double phi = 2.0 * M_PI * RefrDistribution(generator);
+                    const double x = sin(theta) * cos(phi);
+                    const double y = sin(theta) * sin(phi);
 
                     // Perturb ray
                     GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
                     GlossRay.Direction.normalize();
                     TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, nextDepth, Time);
                 }
-                reflCol = TotalGloss / 8.f;
+                reflCol = TotalGloss * 0.125;
             }
             else
             {
@@ -217,8 +231,8 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
             }
 
             // Refracted ray creation
-            Ray RefractedRay = R.Refract(ni, nt, NdotR, sin2t, Hit);
-            double refrCoef = powerCoef * (1.f - Reflectance);
+            Ray RefractedRay = ray.Refract(ni, nt, NdotR, sin2t, Hit);
+            double refrCoef = powerCoef * (1.0 - Reflectance);
             Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, nextDepth, Time);
 
             return reflCol + refrCol;
@@ -226,7 +240,7 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
         else
         {
             // Total Internal Reflection
-            Ray ReflectedRay = R.Reflect(Hit, (-R.Direction).dot(Hit.Normal));
+            Ray ReflectedRay = ray.Reflect(Hit, (-ray.Direction).dot(Hit.Normal));
             return TraceRay(ReflectedRay, powerCoef, nextDepth, Time);
         }
     }
@@ -240,62 +254,66 @@ Colour RenderThread::TraceRay(Ray& R, double powerCoef, unsigned int depth, cons
 Colour SuperSampleThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
     // Equally distributed super-samples (grid)
-    Colour SuperTotal;
-    double numRays = (double)SuperSamples * SuperSamples;
-    Colour Cols[(int)numRays];
-    double halfSubWidth = 1.f / ((double)SuperSamples * 2.f); int index = 0;
+    const double halfSubWidth = 0.5 / SuperSamples;
+    const size_t numRays = SuperSamples * SuperSamples;
+    Colour Cols[numRays];
+    uint32_t index = 0;
     for (double i = halfSubWidth; i < 1; i += halfSubWidth * 2)
     {
         for (double j = halfSubWidth; j < 1; j += halfSubWidth * 2)
         {
-            Ray R = m_renderData.m_normCam->GetRayThroughPixel(x, y, i, j);
-            Cols[index++] = TraceRay(R, 1.f, 0, Time);
+            Ray ray = m_renderData.m_normCam->GetRayThroughPixel(x, y, i, j);
+            Cols[index++] = TraceRay(ray, 1.0, 0, Time);
         }
     }
 
-    for (int i = 0; i < (int)numRays; i++)
+    Colour SuperTotal;
+    for (size_t i = 0; i < numRays; i++)
     {
         SuperTotal  = SuperTotal + Cols[i];
     }
-    return SuperTotal / numRays;
+    return SuperTotal / static_cast<double>(numRays);
 }
 
 inline Colour AdaptiveSampleThread::TracePixelAntiAliased(int x, int y, const double& Time)
 {
-    return AdaptiveSuperSample(x, y, 0.f, 1.f, 0.f, 1.f, 0, Time);
+    return AdaptiveSuperSample(x, y, 0.0, 1.0, 0.0, 1.0, 0, Time);
 }
 
-Colour AdaptiveSampleThread::AdaptiveSuperSample(int x, int y, double xNormMin, double xNormMax, double yNormMin, double yNormMax, unsigned int depth, const double& Time)
+Colour AdaptiveSampleThread::AdaptiveSuperSample(const int x, const int y, const double xNormMin, const double xNormMax, const double yNormMin, const double yNormMax, const unsigned int depth, const double& Time)
 {
     Colour Cols[4];
-    double QuartX = (xNormMax - xNormMin) / 4.f;
-    double QuartY = (yNormMax - yNormMin) / 4.f;
+    const double QuartX = (xNormMax - xNormMin) * 0.25;
+    const double QuartY = (yNormMax - yNormMin) * 0.25;
     Ray R0 = m_renderData.m_normCam->GetRayThroughPixel(x, y, xNormMin + QuartX, yNormMin + QuartY);
     Ray R1 = m_renderData.m_normCam->GetRayThroughPixel(x, y, xNormMin + QuartX, yNormMax - QuartY);
     Ray R2 = m_renderData.m_normCam->GetRayThroughPixel(x, y, xNormMax - QuartX, yNormMin + QuartY);
     Ray R3 = m_renderData.m_normCam->GetRayThroughPixel(x, y, xNormMax - QuartX, yNormMax - QuartY);
-    Cols[0] = TraceRay(R0, 1.f, 0, Time);
-    Cols[1] = TraceRay(R1, 1.f, 0, Time);
-    Cols[2] = TraceRay(R2, 1.f, 0, Time);
-    Cols[3] = TraceRay(R3, 1.f, 0, Time);
+    Cols[0] = TraceRay(R0, 1.0, 0, Time);
+    Cols[1] = TraceRay(R1, 1.0, 0, Time);
+    Cols[2] = TraceRay(R2, 1.0, 0, Time);
+    Cols[3] = TraceRay(R3, 1.0, 0, Time);
     Colour Total = Cols[0] + Cols[1] + Cols[2] + Cols[3];
 
     // Not the same colours - recurse
     if (!(Cols[0] == Cols[1] && Cols[0] == Cols[2] && Cols[0] == Cols[3]) && depth < 2)
     {
-        double HalfX = QuartX * 2, HalfY = QuartY * 2;
-        unsigned int newDepth = depth + 1;
+        const double HalfX = QuartX * 2;
+        const double HalfY = QuartY * 2;
+        const unsigned int newDepth = depth + 1;
+
         Total = Total +
                 AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth, Time) +
                 AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth, Time) +
                 AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth, Time) +
                 AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);
-        Total = Total / 8.f;
+                
+        Total = Total * 0.125;
     }
     // Same colours or too deep
     else
     {
-        Total = Total / 4.f;
+        Total = Total * 0.25;
     }
 
     return Total;

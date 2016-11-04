@@ -10,49 +10,81 @@ class Light;
 class SceneContainer;
 class PhotonMap;
 
-class Material {
+class Material
+{
 public:
-  virtual ~Material();
-  virtual Colour GetDiffuse() = 0;
-  virtual Colour GetSpecular() = 0;
-  virtual double GetShine() = 0;
-  virtual bool GetRef() = 0;
-  virtual double GetRefIndex() = 0;
-  virtual double GetGloss() = 0;
+    virtual ~Material();
+    virtual Colour GetDiffuse() = 0;
+    virtual Colour GetSpecular() = 0;
+    virtual double GetShine() = 0;
+    virtual bool GetRef() = 0;
+    virtual double GetRefIndex() = 0;
+    virtual double GetGloss() = 0;
 
-  // Return the colour for a given Hit and incident ray
-  virtual Colour DoLighting(const SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights,const HitInfo& Hit, const Colour& ambient, const double& Time) = 0;
+    // Return the colour for a given Hit and incident ray
+    virtual Colour DoLighting(const SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time) = 0;
 
 protected:
-  Material()
-  {
-  }
+    Material()
+    {
+    }
 };
 
-class PhongMaterial : public Material {
+class PhongMaterial : public Material
+{
 public:
-  PhongMaterial() : m_kd(1), m_ks(1), m_shininess(0), refractive(false), refractiveIndex(0) {}
-  PhongMaterial(const Colour& kd, const Colour& ks, double shininess, bool refractive = false, double refractiveIndex = 0
-      , double glossiness = 0.f);
-  virtual ~PhongMaterial();
+    PhongMaterial() :
+        m_kd(1),
+        m_ks(1),
+        m_shininess(0),
+        refractive(false),
+        refractiveIndex(0)
+    {}
 
-  virtual Colour GetDiffuse() override { return m_kd; }
-  virtual Colour GetSpecular() override { return m_ks; }
-  virtual double GetShine() override { return m_shininess; }
-  virtual bool GetRef() override { return refractive; }
-  virtual double GetRefIndex() override { return refractiveIndex; }
-  virtual double GetGloss() override { return glossiness; }
+    PhongMaterial(const Colour& kd, const Colour& ks, double shininess, bool refractive = false, double refractiveIndex = 0, double glossiness = 0.f);
 
-  Colour DoLighting(const SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights,const HitInfo& Hit, const Colour& ambient, const double& Time);
+    virtual ~PhongMaterial();
+
+    virtual Colour GetDiffuse() override
+    {
+        return m_kd;
+    }
+
+    virtual Colour GetSpecular() override
+    {
+        return m_ks;
+    }
+
+    virtual double GetShine() override
+    {
+        return m_shininess;
+    }
+
+    virtual bool GetRef() override
+    {
+        return refractive;
+    }
+
+    virtual double GetRefIndex() override
+    {
+        return refractiveIndex;
+    }
+
+    virtual double GetGloss() override
+    {
+        return glossiness;
+    }
+
+    Colour DoLighting(const SceneContainer* Scene, const Ray& R, const std::list<std::unique_ptr<Light>>* lights, const HitInfo& Hit, const Colour& ambient, const double& Time);
 
 private:
-  Colour m_kd;
-  Colour m_ks;
+    Colour m_kd;
+    Colour m_ks;
 
-  double m_shininess;
-  bool refractive;
-  double refractiveIndex;
-  double glossiness;
+    double m_shininess;
+    bool refractive;
+    double refractiveIndex;
+    double glossiness;
 };
 
 

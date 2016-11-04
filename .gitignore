@@ -3,6 +3,8 @@
 *.tz
 *.txt
 rt
+prof
+callgrind*
 
 # Compiled Object files
 *.slo

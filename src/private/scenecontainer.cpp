@@ -1,24 +1,33 @@
 #include "scenecontainer.h"
 #include "scene.hpp"
+#include <limits>
 
 bool SceneContainer::ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time) const
 {
-    double closestDist = 10000000.f; Matrix4x4 M;
+    double closestDist = std::numeric_limits<double>::max();
+    Matrix4x4 M;
     bool bHit = false;
     for (auto& S : *Nodes)
     {
-        if (S->TimeTrace(R, closestDist, Hit, M, Time)) bHit = true;
+        if (S->TimeTrace(R, closestDist, Hit, M, Time))
+        {
+            bHit = true;
+        }
     }
     return bHit;
 }
 
 bool SceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) const
 {
-    double closestDist = 10000000.f; Matrix4x4 M;
+    double closestDist = std::numeric_limits<double>::max();
+    Matrix4x4 M;
     bool bHit = false;
     for (auto& S : *Nodes)
     {
-        if (S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
+        if (S->ColourTrace(R, closestDist, Hit, M))
+        {
+            bHit = true;
+        }
     }
     return bHit;
 }
@@ -26,11 +35,15 @@ bool SceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) co
 bool SceneContainer::ContainerSpecificDepthTrace(const Ray& R, double& dist) const
 {
     bool bHit = false;
-    HitInfo ShadowHit; Matrix4x4 M;
-    dist = 1000000.f;
+    HitInfo ShadowHit;
+    Matrix4x4 M;
+    dist = std::numeric_limits<double>::max();
     for (auto& S : *Nodes)
     {
-        if (S->DepthTrace(R, dist, ShadowHit, M)) bHit = true;
+        if (S->DepthTrace(R, dist, ShadowHit, M))
+        {
+            bHit = true;
+        }
     }
     return bHit;
 }
@@ -73,7 +86,7 @@ bool SceneContainer::TimeDepthTrace(const Ray& R, double& dist, const double& Ti
 {
     HitInfo Hit;
     bool bHit = ContainerSpecificTimeTrace(R, Hit, Time);
-    dist = (Hit.Location - R.Start).length();
+    dist = (Hit.Location - R.Start).length2();
     return bHit;
 }
 
@@ -95,26 +108,34 @@ OctreeSceneContainer::OctreeSceneContainer(std::vector<std::unique_ptr<SceneNode
 
 bool OctreeSceneContainer::ContainerSpecificTimeTrace(const Ray& R, HitInfo& Hit, const double& Time) const
 {
-    double closestDist = 10000000.f; Matrix4x4 M;
+    double closestDist = std::numeric_limits<double>::max();
+    Matrix4x4 M;
     bool bHit = false;
     Array<SceneNode*> OctList;
     Tree.Trace(OctList, R);
     for (SceneNode* S : OctList)
     {
-        if (S->TimeTrace(R, closestDist, Hit, M, Time)) bHit = true;
+        if (S->TimeTrace(R, closestDist, Hit, M, Time))
+        {
+            bHit = true;
+        }
     }
     return bHit;
 }
 
 bool OctreeSceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& Hit) const
 {
-    double closestDist = 10000000.f; Matrix4x4 M;
+    double closestDist = std::numeric_limits<double>::max();
+    Matrix4x4 M;
     bool bHit = false;
     Array<SceneNode*> OctList;
     Tree.Trace(OctList, R);
     for (SceneNode* S : OctList)
     {
-        if (S->ColourTrace(R, closestDist, Hit, M)) bHit = true;
+        if (S->ColourTrace(R, closestDist, Hit, M))
+        {
+            bHit = true;
+        }
     }
     return bHit;
 }
@@ -122,13 +143,17 @@ bool OctreeSceneContainer::ContainerSpecificColourTrace(const Ray& R, HitInfo& H
 bool OctreeSceneContainer::ContainerSpecificDepthTrace(const Ray& R, double& dist) const
 {
     bool bHit = false;
-    HitInfo Hit; Matrix4x4 M;
-    dist = 1000000.f;
+    HitInfo Hit;
+    Matrix4x4 M;
+    dist = std::numeric_limits<double>::max();
     Array<SceneNode*> OctList;
     Tree.Trace(OctList, R);
     for (SceneNode* S : OctList)
     {
-        if (S->DepthTrace(R, dist, Hit, M)) bHit = true;
+        if (S->DepthTrace(R, dist, Hit, M))
+        {
+            bHit = true;
+        }
     }
     return bHit;
 }

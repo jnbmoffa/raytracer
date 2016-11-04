@@ -51,7 +51,7 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 			double cost = sqrt(1.f-sin2t);
 			double R1 = (ni*NdotR - nt*cost)/(ni*NdotR + nt*cost); R1 *= R1;
 			double R2 = (nt*NdotR - ni*cost)/(nt*NdotR + ni*cost); R2 *= R2;
-			double Reflectance = (R1 + R2)/2.f;
+			double Reflectance = (R1 + R2) * 0.5;
 
 			// Photons don't do glossy reflection
 			Ray ReflectedRay = R.Reflect(Hit, NdotR);

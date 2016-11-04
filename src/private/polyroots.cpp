@@ -121,7 +121,7 @@ size_t quadraticRoots( double A, double B, double C, double roots[2] )
 			return 0;
 		} else {
 			/* Two real roots */
-			q = -( B + SIGN(B)*sqrt(D) ) / 2.0;
+			q = -( B + SIGN(B)*sqrt(D) ) * 0.5;
 			roots[0] = q / A;
 			if( q != 0 ) {
 				roots[1] = C / q;
@@ -182,8 +182,8 @@ size_t cubicRoots( double p, double q, double r, double roots[3] )
       cosk = sink = 0;
     p_over_3 = p / 3.0;
     roots[0] = 2.0 * s * cosk - p_over_3;
-    roots[1] = 2.0 * s * (-cosk + SQRT3*sink)/2.0 - p_over_3;
-    roots[2] = 2.0 * s * (-cosk - SQRT3*sink)/2.0 - p_over_3;
+    roots[1] = 2.0 * s * (-cosk + SQRT3*sink) * 0.5 - p_over_3;
+    roots[2] = 2.0 * s * (-cosk - SQRT3*sink) * 0.5 - p_over_3;
 	return 3;
   }
 }
@@ -219,8 +219,8 @@ size_t quarticRoots(
 		}
 	}
 
-	g1 = a/2.0;
-	h1 = (b-y)/2.0;
+	g1 = a * 0.5;
+	h1 = (b-y) * 0.5;
 	if( y < 0 ) {
 		n = a*a - 4*y;
 		if( n <= 0 ) {
@@ -230,8 +230,8 @@ size_t quarticRoots(
 		if( g2 == 0 ) {
 			return 0;
 		}
-		h2 = (a*((b-y)/2.0) - c) / g2;
-		g2 /= 2.0;
+		h2 = (a*((b-y) * 0.5) - c) / g2;
+		g2 *= 0.5;
 	} else if( y > 0 && d > 0 && b < 0 ) {
 		m = (b-y)*(b-y) - 4*d;
 		if( m <= 0 ) {
@@ -266,8 +266,8 @@ size_t quarticRoots(
 			if (g2 == 0) { 
 				return 0; 
 			}
-			h2 = (a*( (b-y)/2.0) - c) / g2;
-			g2 /= 2.0;
+			h2 = (a*( (b-y) * 0.5) - c) / g2;
+			g2 *= 0.5;
 		}
 	}
 
@@ -569,7 +569,7 @@ static double cosk_lookup(double t)
   if (t > .999999) 		/* Asymtotic forms */
     return (8.0 + t) / 9.0;
   if (t < -.99999)		
-    return (1 + sqrt(t+1.)/3.0)/2.0;
+    return (1 + sqrt(t+1.)/3.0) * 0.5;
 
   /* Use linear interpolation between table entries. */
 
@@ -801,7 +801,7 @@ static double sink_lookup(double t)
   if (t > .999999) 		/* Asymtotic forms */
     return sqrt(2.0*(1.0 - t)/9.0);
   if (t < -.99999)		
-    return ( SQRT3 - sqrt(2.0*(t+1))/3.0)/2.0;
+    return ( SQRT3 - sqrt(2.0*(t+1))/3.0) * 0.5;
     
     
   /* convert t to a table index */
