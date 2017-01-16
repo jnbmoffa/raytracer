@@ -46,12 +46,6 @@ class Image;
 
 class RenderThread : public Thread
 {
-protected:
-    RenderData m_renderData;
-
-    std::default_random_engine generator;
-    std::uniform_real_distribution<double> RefrDistribution;
-
 public:
     RenderThread(RenderData renderData) :
         m_renderData(renderData),
@@ -62,6 +56,12 @@ public:
     virtual void Main() override;
 
     virtual Colour TracePixelAntiAliased(int x, int y, const double& Time);
+
+protected:
+    RenderData m_renderData;
+
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> RefrDistribution;
 
     Colour TraceRay(Ray& R, double powerCoef, unsigned int depth, const double& Time);
 };

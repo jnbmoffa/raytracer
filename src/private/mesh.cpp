@@ -23,14 +23,17 @@ Mesh::Mesh(const std::vector<Point3D>& verts, const std::vector<std::vector<int>
     const double radius = std::max(std::abs(center[0] - MaxX), std::max(std::abs(center[0] - MinX),
                                    std::max(std::abs(center[1] - MaxY), std::max(std::abs(center[1] - MinY),
                                             std::max(std::abs(center[2] - MaxZ), std::abs(center[2] - MinZ))))));
-    Bounds = BoxF(center[0] - radius, center[0] + radius, center[1] + radius, center[1] - radius, center[2] + radius, center[2] - radius);
+    Bounds = BoxF(center[0] + radius, center[0] - radius, center[1] + radius, center[1] - radius, center[2] + radius, center[2] - radius);
 }
 
 bool Mesh::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4& M)
 {
     bool ret = false;
-    R.Direction.normalize();
-    if (Bounds.Intersects(R))
+    R.Normalize();
+    Point3D rayOrigin = R.GetOrigin();
+    Vector3D rayDir = R.GetDirection();
+
+    if (CheckIntersection(R, Bounds))
     {
         for (std::vector<Face>::iterator iter = m_faces.begin(); iter != m_faces.end(); ++iter)
         {
@@ -40,13 +43,13 @@ bool Mesh::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4&
                 Vector3D Norm = cross((m_verts[F[1]] - m_verts[F[0]]), m_verts[F[2]] - m_verts[F[0]]);
                 Norm.normalize();
                 double D = SolveForD(m_verts[F[0]], Norm);
-                double S = -(D + (-SolveForD(R.Start, Norm))) / (Norm.dot(R.Direction));
+                double S = -(D + (-SolveForD(rayOrigin, Norm))) / (Norm.dot(rayDir));
                 if (S <= 0)
                 {
                     continue;
                 }
-                Vector3D rayAdd = S * R.Direction;
-                Point3D rayInt = R.Start + rayAdd;
+                Vector3D rayAdd = S * rayDir;
+                Point3D rayInt = rayOrigin + rayAdd;
 
                 // Flatten all vectors based on largest normal component
                 int IgnoreIdx = 0;
@@ -85,7 +88,7 @@ bool Mesh::DepthTrace(Ray R, double& closestDist, HitInfo& Hit, const Matrix4x4&
                 // On the same side of every line?
                 if (count == F.size())
                 {
-                    Point3D WorldRay = M * R.Start;
+                    Point3D WorldRay = M * rayOrigin;
                     Point3D WorldHit = M * rayInt;
                     if (clampDist(closestDist, WorldRay, WorldHit, Norm, Hit, M))
                     {

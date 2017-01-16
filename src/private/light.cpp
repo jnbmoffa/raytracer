@@ -3,6 +3,7 @@
 #include "ray.h"
 #include <iostream>
 #include <cmath>
+#include <limits>
 
 Light::Light()
     : colour(0.0, 0.0, 0.0),
@@ -16,14 +17,17 @@ Light::Light()
 bool Light::IsVisibleFrom(const SceneContainer* Scene, const Point3D& LightLoc, const Point3D& TestLoc, const double& Time)
 {
     Vector3D PtToLight = LightLoc - TestLoc;
-    double LightDist = PtToLight.length2();
+    const double LightDist = PtToLight.length2();
+    double dist = std::numeric_limits<double>::max();
     PtToLight.normalize();
-    double dist = 1000000.f;
+    
     bool bHit = Scene->TimeDepthTrace(Ray(TestLoc, PtToLight), dist, Time);
-    if (bHit && dist > EPSILON && dist < LightDist)
+    if (bHit && dist < LightDist)
     {
+        // Hit object between testloc and the light
         return false;
     }
+    // Nothing obstructing the light
     return true;
 }
 

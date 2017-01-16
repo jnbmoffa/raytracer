@@ -1,5 +1,5 @@
 #pragma once
-#include "box.h"
+#include "AxisAlignedBox.h"
 #include "array.h"
 #include "ray.h"
 #include <iostream>
@@ -17,42 +17,43 @@ public:
 template<typename OctObjectType = OcTreeObject>
 class OcTree
 {
-    unsigned level;			// Depth in octree structure
-    BoxF Bounds;			// Bounds of this tree
-    Array<OctObjectType*> objects;	// objects in this tree
-    Array<OcTree*> nodes;	// regions
+    unsigned level;         // Depth in octree structure
+    BoxF Bounds;            // Bounds of this tree
+    Array<OctObjectType*> objects;  // objects in this tree
+    Array<OcTree*> nodes;   // regions
     unsigned MAX_OBJECTS, MAX_LEVELS;
 
     // Break this tree up into 8 cubes
     void Split()
     {
-        double halfWidth = Bounds.GetWidth() * 0.5;
-        double halfHeight = Bounds.GetHeight() * 0.5;
-        double halfDepth = Bounds.GetDepth() * 0.5;
-        double l = Bounds.GetLeft();
-        double r = Bounds.GetRight();
-        double t = Bounds.GetTop();
-        double bo = Bounds.GetBottom();
-        double f = Bounds.GetFront();
-        double ba = Bounds.GetBack();
+        const double halfWidth = Bounds.GetWidth() * 0.5;
+        const double halfHeight = Bounds.GetHeight() * 0.5;
+        const double halfDepth = Bounds.GetDepth() * 0.5;
+
+        const double l = Bounds.GetLeft();
+        const double r = Bounds.GetRight();
+        const double t = Bounds.GetTop();
+        const double bo = Bounds.GetBottom();
+        const double f = Bounds.GetFront();
+        const double ba = Bounds.GetBack();
 
         // top left front = 0
-        nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(l + halfWidth, l, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
         // top right front = 1
-        nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(r, r - halfWidth, t, t - halfHeight, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
         // top left back = 2
-        nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, t, t - halfHeight, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(l + halfWidth, l, t, t - halfHeight, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
         // top right back = 3
-        nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, t, t - halfHeight, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(r, r - halfWidth, t, t - halfHeight, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
 
         // bottom left front = 4
-        nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(l + halfWidth, l, bo + halfHeight, bo, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
         // bottom right front = 5
-        nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(r, r - halfWidth, bo + halfHeight, bo, f, f - halfDepth), MAX_OBJECTS, MAX_LEVELS));
         // bottom left back = 6
-        nodes.Add(new OcTree(level + 1, BoxF(l, l + halfWidth, bo + halfHeight, bo, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(l + halfWidth, l, bo + halfHeight, bo, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
         // bottom right back = 7
-        nodes.Add(new OcTree(level + 1, BoxF(r - halfWidth, r, bo + halfHeight, bo, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
+        nodes.Add(new OcTree(level + 1, BoxF(r, r - halfWidth, bo + halfHeight, bo, ba + halfDepth, ba), MAX_OBJECTS, MAX_LEVELS));
     }
 
     // Return index of the cube the box fits into
@@ -76,7 +77,7 @@ class OcTree
 
         if (pBox.GetRight() < vertMidpoint) // left half
         {
-            if (topHalf)	// top left
+            if (topHalf)    // top left
             {
                 if (frontHalf)
                 {
@@ -87,7 +88,7 @@ class OcTree
                     index = 2;
                 }
             }
-            else if (botHalf)	// bottom left
+            else if (botHalf)   // bottom left
             {
                 if (frontHalf)
                 {
@@ -101,7 +102,7 @@ class OcTree
         }
         else if (pBox.GetLeft() > vertMidpoint) // right half
         {
-            if (topHalf)	// top right
+            if (topHalf)    // top right
             {
                 if (frontHalf)
                 {
@@ -112,7 +113,7 @@ class OcTree
                     index = 3;
                 }
             }
-            else if (botHalf)	// bottom right
+            else if (botHalf)   // bottom right
             {
                 if (frontHalf)
                 {
@@ -128,15 +129,30 @@ class OcTree
         return index;
     }
 
-    OcTree(int pLevel, const BoxF& Bounds, int maxObj, int maxLvl) : level(pLevel), Bounds(Bounds), MAX_OBJECTS(maxObj), MAX_LEVELS(maxLvl) {  }
+    OcTree(int pLevel, const BoxF& Bounds, int maxObj, int maxLvl) :
+        level(pLevel),
+        Bounds(Bounds),
+        MAX_OBJECTS(maxObj),
+        MAX_LEVELS(maxLvl)
+    {}
 
 public:
-    OcTree() : level(0), MAX_OBJECTS(1), MAX_LEVELS(4) {}
-    OcTree(const BoxF& Bounds, int maxObj = 1, int maxLvl = 4) : level(0), Bounds(Bounds), MAX_OBJECTS(maxObj), MAX_LEVELS(maxLvl) {  }
+    OcTree() :
+        level(0),
+        MAX_OBJECTS(1),
+        MAX_LEVELS(4)
+    {}
+
+    OcTree(const BoxF& Bounds, int maxObj = 1, int maxLvl = 4) :
+        level(0),
+        Bounds(Bounds),
+        MAX_OBJECTS(maxObj),
+        MAX_LEVELS(maxLvl)
+    {}
 
     ~OcTree()
     {
-        this->Clear();
+        Clear();
     }
 
     OcTree& operator=(const OcTree& RHS)
@@ -146,8 +162,11 @@ public:
             return *this;
         }
 
-        Bounds = BoxF(RHS.Bounds.GetLeft(), RHS.Bounds.GetRight(), RHS.Bounds.GetTop(), RHS.Bounds.GetBottom(),
+        Bounds = BoxF(RHS.Bounds.GetRight(), RHS.Bounds.GetLeft(), RHS.Bounds.GetTop(), RHS.Bounds.GetBottom(),
                       RHS.Bounds.GetFront(), RHS.Bounds.GetBack());
+
+        // Reset this tree
+        Clear();
 
         // Insert the other tree's objects into this one
         for (unsigned int i = 0; i < RHS.objects.Num(); i++)
@@ -169,7 +188,7 @@ public:
         {
             nodes[0]->Clear();
             delete nodes[0];
-            nodes.RemoveAt(0);
+            nodes.RemoveAtSwap(0);
         }
     }
 
@@ -255,7 +274,7 @@ public:
     // Get the objects that might be hit by the ray
     bool Trace(Array<OctObjectType*>& returnObjects, const Ray& r) const
     {
-        if ((nodes.Num() > 0 || objects.Num() > 0) && Bounds.Intersects(r))
+        if ((nodes.Num() > 0 || objects.Num() > 0) && CheckIntersection(r, Bounds))
         {
             // check every subnode
             for (OcTree* T : nodes)

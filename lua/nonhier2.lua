@@ -24,9 +24,11 @@ s3 = gr.nh_sphere('s3', {0, -1200, -500}, 1000)
 scene:add_child(s3)
 s3:set_material(mat2)
 
-b1 = gr.nh_box('b1', {-200, -125, 0}, 100)
+b1 = gr.cube('b1')
 scene:add_child(b1)
 b1:set_material(mat4)
+b1:translate(-200,-120,0)
+b1:scale(100,100,100)
 
 s4 = gr.nh_sphere('s4', {-100, 25, -300}, 50)
 scene:add_child(s4)

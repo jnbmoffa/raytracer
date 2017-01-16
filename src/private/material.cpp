@@ -67,7 +67,7 @@ Colour PhongMaterial::DoLighting( const SceneContainer* Scene, const Ray& R, con
         // Specular
         if ( m_ks != Colour( 0, 0, 0 ) )
         {
-            Vector3D TempEye = R.Start - Hit.Location;
+            Vector3D TempEye = R.GetOrigin() - Hit.Location;
             TempEye.normalize();
             Vector3D Reflection = ( ( 2 * LdotN ) * Hit.Normal ) - LightDir;
             Reflection.normalize();

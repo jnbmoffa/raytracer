@@ -20,10 +20,6 @@
 #include <cmath>
 #include "fastmath.h"
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
 using Point3D = FastMath::Point3D;
 using Vector3D = FastMath::Vector3D;
 using Vector4D = FastMath::Vector4D;
@@ -44,7 +40,7 @@ public:
 
     Matrix4x4(const Matrix4x4& other)
     {
-        FastMath::AssignArrays<value_type, 16, 0>::eval(v_, other.v_);
+        FastMath::FastArrayCopy<value_type, 16, 0>(v_, other.v_);
     }
 
     Matrix4x4(const Vector4D& row1, const Vector4D& row2, const Vector4D& row3, const Vector4D& row4)
@@ -72,7 +68,7 @@ public:
 
     Matrix4x4& operator=(const Matrix4x4& other)
     {
-        FastMath::AssignArrays<value_type, 16, 0>::eval(v_, other.v_);
+        FastMath::FastArrayCopy<value_type, 16, 0>(v_, other.v_);
         return *this;
     }
 
@@ -80,7 +76,7 @@ public:
     {
         return Vector4D(v_[4 * row], v_[4 * row + 1], v_[4 * row + 2], v_[4 * row + 3]);
     }
-    
+
     value_type* getRow(size_t row)
     {
         return (value_type*)v_ + 4 * row;
@@ -103,14 +99,14 @@ public:
 
     void rotate(char axis, value_type angle)
     {
-        const value_type rad = angle * (M_PI / 180);
-        const value_type cosValue = cos(rad);
-        const value_type sinValue = sin(rad);
+        const value_type rad = FastMath::DegreesToRadians(angle);
+        const value_type cosValue = std::cos(rad);
+        const value_type sinValue = std::sin(rad);
 
-        Vector4D R1(1.f, 0.f, 0.f, 0.f);
-        Vector4D R2(0.f, 1.f, 0.f, 0.f);
-        Vector4D R3(0.f, 0.f, 1.f, 0.f);
-        const Vector4D R4(0.f, 0.f, 0.f, 1.f);
+        Vector4D R1(1.0, 0.0, 0.0, 0.0);
+        Vector4D R2(0.0, 1.0, 0.0, 0.0);
+        Vector4D R3(0.0, 0.0, 1.0, 0.0);
+        const Vector4D R4(0.0, 0.0, 0.0, 1.0);
         switch (axis)
         {
         case 'x':
@@ -140,19 +136,19 @@ public:
 
     void scale(const Vector3D& amount)
     {
-        const Vector4D R1(amount[0], 0.f, 0.f, 0.f);
-        const Vector4D R2(0.f, amount[1], 0.f, 0.f);
-        const Vector4D R3(0.f, 0.f, amount[2], 0.f);
-        const Vector4D R4(0.f, 0.f, 0.f, 1.f);
+        const Vector4D R1(amount[0], 0.0, 0.0, 0.0);
+        const Vector4D R2(0.0, amount[1], 0.0, 0.0);
+        const Vector4D R3(0.0, 0.0, amount[2], 0.0);
+        const Vector4D R4(0.0, 0.0, 0.0, 1.0);
         (*this) = (*this) * Matrix4x4(R1, R2, R3, R4);
     }
 
     void translate(const Vector3D& amount)
     {
-        const Vector4D R1(1.f, 0.f, 0.f, amount[0]);
-        const Vector4D R2(0.f, 1.f, 0.f, amount[1]);
-        const Vector4D R3(0.f, 0.f, 1.f, amount[2]);
-        const Vector4D R4(0.f, 0.f, 0.f, 1.f);
+        const Vector4D R1(1.0, 0.0, 0.0, amount[0]);
+        const Vector4D R2(0.0, 1.0, 0.0, amount[1]);
+        const Vector4D R3(0.0, 0.0, 1.0, amount[2]);
+        const Vector4D R4(0.0, 0.0, 0.0, 1.0);
         (*this) = (*this) * Matrix4x4(R1, R2, R3, R4);
     }
 
@@ -191,7 +187,7 @@ struct MultMtxImpl<Matrix4x4, 4, 0, 0, 4 * 4>
 inline Matrix4x4 operator*(const Matrix4x4& a, const Matrix4x4& b)
 {
     Matrix4x4 ret;
-    FastMath::MultMtx<Matrix4x4, 4>::eval(ret, a, b);
+    FastMath::FastMatrixMultiply<Matrix4x4, 4>::eval(ret, a, b);
     return ret;
 }
 
@@ -272,34 +268,58 @@ public:
         return *this;
     }
 
-    double R() const
+    double R() const noexcept
     {
         return r_;
     }
 
-    double G() const
+    double G() const noexcept
     {
         return g_;
     }
 
-    double B() const
+    double B() const noexcept
     {
         return b_;
     }
 
-    double& R()
+    double& R() noexcept
     {
         return r_;
     }
 
-    double& G()
+    double& G() noexcept
     {
         return g_;
     }
 
-    double& B()
+    double& B() noexcept
     {
         return b_;
+    }
+
+    Colour& operator*=(const double& value)
+    {
+        r_ *= value;
+        g_ *= value;
+        b_ *= value;
+        return *this;
+    }
+ 
+    Colour& operator/=(const double& value)
+    {
+        r_ /= value;
+        g_ /= value;
+        b_ /= value;
+        return *this;
+    }
+
+    Colour& operator+=(const Colour& other)
+    {
+        r_ += other.r_;
+        g_ += other.g_;
+        b_ += other.b_;
+        return *this;
     }
 
 private:
@@ -310,12 +330,12 @@ private:
 
 inline bool operator==(const Colour& a, const Colour& b)
 {
-    constexpr double localEpsilon = 0.05;
-    return FastMath::IsNearly(a.R(), b.R(), localEpsilon)
+    constexpr double colourEpsilon = 0.05;
+    return FastMath::IsNearly(a.R(), b.R(), colourEpsilon)
            &&
-           FastMath::IsNearly(a.G(), b.G(), localEpsilon)
+           FastMath::IsNearly(a.G(), b.G(), colourEpsilon)
            &&
-           FastMath::IsNearly(a.B(), b.B(), localEpsilon);
+           FastMath::IsNearly(a.B(), b.B(), colourEpsilon);
 }
 
 inline bool operator!=(const Colour& a, const Colour& b)

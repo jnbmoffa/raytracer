@@ -22,22 +22,23 @@ public:
 
     virtual void FlattenScene(std::vector<std::unique_ptr<SceneNode>>& List, Matrix4x4 M = Matrix4x4());
 
-    const Matrix4x4& get_transform() const
+    const Matrix4x4& GetTransform() const
     {
         return m_trans;
     }
-    const Matrix4x4& get_inverse() const
+
+    const Matrix4x4& GetInverse() const
     {
         return m_invtrans;
     }
 
-    void set_transform(const Matrix4x4& m)
+    void SetTransform(const Matrix4x4& m)
     {
         m_trans = m;
         m_invtrans = m.invert();
     }
 
-    void set_transform(const Matrix4x4& m, const Matrix4x4& i)
+    void SetTransform(const Matrix4x4& m, const Matrix4x4& i)
     {
         m_trans = m;
         m_invtrans = i;
@@ -103,7 +104,7 @@ protected:
     JointRange m_joint_x, m_joint_y;
 };
 
-class GeometryNode : public SceneNode, OcTreeObject
+class GeometryNode : public SceneNode, public OcTreeObject
 {
 public:
     GeometryNode(const std::string& name, std::shared_ptr<Primitive> primitive, Vector3D Velocity = Vector3D());

@@ -1,5 +1,7 @@
 #pragma once
+
 #include <stdexcept>
+#include <memory>
 
 #define INDEX_NONE -1
 
@@ -8,272 +10,284 @@
 template<typename T>
 class Array
 {
-	T* Contents;
-	unsigned int NumElements;		// Number of elements in the array
-	unsigned int MaxNumElements;	// Amount of space available in the array
-
-	// Allocate space for the given number of items
-	// Truncates the array if the given number is less than the current number of elements
-	void AllocateNewSpace(unsigned int NumberToAlllocate)
-	{
-		// Truncate the array if it's larger than the new size
-		if (NumElements > NumberToAlllocate)
-		{
-			NumElements = NumberToAlllocate;
-		}
-
-		// Allocate new space and fill it with the old data
-		T* NewContents = new T[NumberToAlllocate];
-		if (Contents != nullptr)
-		{
-			for (unsigned int i = 0; i < NumElements; i++)
-			{
-				NewContents[i] = Contents[i];
-			}
-			FreeContents();
-			Contents = NewContents;
-		}
-		else
-		{
-			Contents = NewContents;
-		}
-		MaxNumElements = NumberToAlllocate;
-	}
-
-	// Free the memory allocated for the contents
-	void FreeContents()
-	{
-		if (Contents != nullptr)
-		{
-			delete[] Contents;
-		}
-		Contents = nullptr;
-	}
-
 public:
-	Array() : Contents(nullptr), NumElements(0), MaxNumElements(0){}
+    using value_type = T;
 
-	~Array()
-	{
-		FreeContents();
-	}
+    Array() :
+        Contents(nullptr),
+        NumElements(0),
+        MaxNumElements(0)
+    {}
 
-	// Returns the item at the given index
-	inline T& operator[](int Index) const
-	{
-		return this->At(Index);
-	}
-	
-	// The number of items in the array
-	inline unsigned int Num() const
-	{
-		return NumElements;
-	}
+    // Returns the item at the given index
+    inline T& operator[](int Index) const
+    {
+        return At(Index);
+    }
 
-	// Adds an item to the end of the array
-	void Add(const T& NewItem)
-	{
-		// Allocate more space if full
-		if (NumElements == MaxNumElements)
-		{
-			AllocateNewSpace(MaxNumElements>0 ? MaxNumElements*2 : 1);
-		}
+    // The number of items in the array
+    inline size_t Num() const
+    {
+        return NumElements;
+    }
 
-		Contents[NumElements++] = NewItem;
-	}
+    // Adds an item to the end of the array
+    void Add(const T& NewItem)
+    {
+        // Allocate more space if full
+        if (IsAllocatedSpaceFull())
+        {
+            GrowAllocatedSpace();
+        }
 
-	// Add an item to the end of the array if it is not
-	// already in the array
-	void AddUnique(const T& NewItem)
-	{
-		if (Find(NewItem) == INDEX_NONE)
-		{
-			Add(NewItem);
-		}
-	}
+        Contents[NumElements++] = NewItem;
+    }
 
-	// Insert an item at the given index (preserving order)
-	void Insert(const T& NewItem, unsigned int Index)
-	{
-		if (IsValidIndex(Index))
-		{
-			unsigned int OriginalNum = NumElements;
+    // Add an item to the end of the array if it is not
+    // already in the array
+    void AddUnique(const T& NewItem)
+    {
+        if (Find(NewItem) == INDEX_NONE)
+        {
+            Add(NewItem);
+        }
+    }
 
-			// Allocate more space if full
-			if (NumElements == MaxNumElements)
-			{
-				AllocateNewSpace(MaxNumElements>0 ? MaxNumElements*2 : 1);
-			}
+    // Insert an item at the given index (preserving order)
+    void Insert(const T& NewItem, size_t Index)
+    {
+        if (IsValidIndex(Index))
+        {
+            // One past the end
+            size_t OriginalNum = NumElements;
 
-			// Shift everything forward to make room
-			for (unsigned int i = OriginalNum; i > Index; i--)
-			{
-				Contents[i] = Contents[i - 1];
-			}
+            // Allocate more space if full
+            if (IsAllocatedSpaceFull())
+            {
+                GrowAllocatedSpace();
+            }
 
-			// Add the item
-			Contents[Index] = NewItem;
-			NumElements++;
-		}
-		else
-		{
-			Add(NewItem);
-		}
-	}
+            // Shift everything forward to make room
+            for (size_t i = OriginalNum; i > Index; --i)
+            {
+                Contents[i] = Contents[i - 1];
+            }
 
-	// Remove the provided item if it's in the array
-	bool Remove(const T& Item)
-	{
-		int Index = Find(Item);
+            // Add the item
+            Contents[Index] = NewItem;
+            NumElements++;
+        }
+        else
+        {
+            // Bad index, add the item to the end
+            Add(NewItem);
+        }
+    }
 
-		if (Index != INDEX_NONE)
-		{
-			RemoveAt(Index);
-			return true;
-		}
+    // Remove the provided item if it's in the array
+    bool Remove(const T& Item)
+    {
+        int Index = Find(Item);
 
-		return false;
-	}
+        if (Index != INDEX_NONE)
+        {
+            RemoveAt(Index);
+            return true;
+        }
 
-	// Removes the item at the given index (preserving order)
-	// Does nothing if the index is invalid
-	void RemoveAt(unsigned int Index)
-	{
-		if (IsValidIndex(Index))
-		{
-			for (unsigned int i = Index; (i + 1) < NumElements; i++)
-			{
-				Contents[i] = Contents[i + 1];
-			}
-			NumElements--;
-		}
-	}
+        return false;
+    }
 
-	// Removes the item at the given index (order is not preserved)
-	// Does nothing if the index is invalid
-	void RemoveAtSwap(unsigned int Index)
-	{
-		if (IsValidIndex(Index))
-		{
-			if (Index != NumElements-1)	// If removing last, just decrease counter
-			{
-				T last = Contents[NumElements-1];
-				Contents[Index] = last;
-			}
-			NumElements--;
-		}
-	}
+    // Removes the item at the given index (preserving order)
+    // Does nothing if the index is invalid
+    void RemoveAt(size_t Index)
+    {
+        if (IsValidIndex(Index))
+        {
+            Contents[Index].~T();
+            for (size_t i = Index; (i + 1) < NumElements; ++i)
+            {
+                Contents[i] = Contents[i + 1];
+            }
+            NumElements--;
+        }
+    }
 
-	// Returns the item at the given index
-	T& At(int Index) const
-	{
-		if (IsValidIndex(Index))
-		{
-			return Contents[Index];
-		}
+    // Removes the item at the given index (order is not preserved)
+    // Does nothing if the index is invalid
+    void RemoveAtSwap(size_t Index)
+    {
+        if (IsValidIndex(Index))
+        {
+            Contents[Index].~T();
+            if (Index != NumElements - 1)	// If removing last, just decrease counter
+            {
+                T last = Contents[NumElements - 1];
+                Contents[Index] = last;
+            }
+            NumElements--;
+        }
+    }
 
-		throw std::out_of_range(" Array index out of range.");
-	}
+    // Returns the item at the given index
+    T& At(int Index) const
+    {
+        if (IsValidIndex(Index))
+        {
+            return Contents[Index];
+        }
 
-	// Reserve space for the given number of elements
-	void Reserve(unsigned int Number)
-	{
-		if (Number > MaxNumElements)
-		{
-			AllocateNewSpace(Number);
-		}
-	}
+        throw std::out_of_range(" Array index out of range.");
+    }
 
-	// Finds the index of an item in the array
-	// Returns INDEX_NONE if the item is not in the array
-	int Find(const T& Item) const
-	{
-		for (unsigned int i = 0; i < Num(); i++)
-		{
-			if (this->At(i) == Item)
-			{
-				return i;
-			}
-		}
+    // Reserve space for the given number of elements
+    void Reserve(size_t Number)
+    {
+        if (Number > MaxNumElements)
+        {
+            AllocateNewSpace(Number);
+        }
+    }
 
-		return INDEX_NONE;
-	}
+    // Finds the index of an item in the array
+    // Returns INDEX_NONE if the item is not in the array
+    int Find(const T& Item) const
+    {
+        for (size_t i = 0; i < Num(); ++i)
+        {
+            if (At(i) == Item)
+            {
+                return i;
+            }
+        }
 
-	// Split this array into two around the index
-	// a = [0,Index), b = (Index,End]
-	bool Split(unsigned int Index, Array<T>& a, Array<T>& b)
-	{
-		if (IsValidIndex(Index) && NumElements > 1)
-		{
-			a.Clear(); b.Clear();
-			a.Reserve(Index); b.Reserve(NumElements-Index);
-			for (unsigned int i=0;i<Index;i++)
-			{
-				a.Add(At(i));
-			}
-			for (unsigned int i=Index+1;i<NumElements;i++)
-			{
-				b.Add(At(i));
-			}
-			return true;
-		}
-		return false;
-	}
+        return INDEX_NONE;
+    }
 
-	// Empty the array
-	void Clear()
-	{
-		FreeContents();
-		NumElements = 0;
-		MaxNumElements = 0;
-	}
+    // Split this array into two around the index
+    // a = [0,Index), b = (Index,End]
+    bool Split(size_t Index, Array<T>& a, Array<T>& b) const
+    {
+        if (IsValidIndex(Index) && NumElements > 1)
+        {
+            a.Clear();
+            b.Clear();
+            a.Reserve(Index);
+            b.Reserve(NumElements - Index);
+            for (size_t i = 0; i < Index; ++i)
+            {
+                a.Add(At(i));
+            }
+            for (size_t i = Index + 1; i < NumElements; ++i)
+            {
+                b.Add(At(i));
+            }
+            return true;
+        }
+        return false;
+    }
 
-	// Returns if the given index is valid in this array
-	inline bool IsValidIndex(unsigned int Index) const
-	{
-		return Index < NumElements;
-	}
+    // Empty the array
+    void Clear()
+    {
+        // Unique ptr cleans up memory
+        Contents = nullptr;
+        NumElements = 0;
+        MaxNumElements = 0;
+    }
 
-	// Iterator for range-based looping
-	class Iterator
-	{
-		unsigned int Index;
-		const Array<T>* pArray;
+    // Returns if the given index is valid in this array
+    inline bool IsValidIndex(size_t Index) const
+    {
+        return Index < NumElements;
+    }
 
-	public:
-		Iterator(const Array<T>* pArray, unsigned int Index = 0) : Index(Index), pArray(pArray) {}
+    // Iterator for range-based looping
+    class Iterator
+    {
+        size_t Index;
+        const Array<T>* pArray;
 
-		bool operator!= (const Iterator& rhs)
-		{
-			return Index != rhs.Index;
-		}
+    public:
+        Iterator(const Array<T>* pArray, size_t Index = 0) : Index(Index), pArray(pArray) {}
 
-		T& operator* () const
-		{
-			return pArray->At(Index);
-		}
+        bool operator!= (const Iterator& rhs) const
+        {
+            return Index != rhs.Index;
+        }
 
-		const Iterator& operator++()
-		{
-			++Index;
-			return *this;
-		}
+        T& operator*() const
+        {
+            return pArray->At(Index);
+        }
 
-		inline Iterator operator+(int I)
-		{
-			return Iterator(pArray, Index+I);
-		}
-	};
+        const Iterator& operator++()
+        {
+            ++Index;
+            return *this;
+        }
 
-	// For range-based looping
-	inline Iterator begin() const
-	{
-		return Iterator(this, 0);
-	}
+        Iterator operator+(int I) const
+        {
+            return Iterator(pArray, Index + I);
+        }
+    };
 
-	// For range-based looping
-	inline Iterator end() const
-	{
-		return Iterator(this, NumElements);
-	}
+    // For range-based looping
+    Iterator begin() const
+    {
+        return Iterator(this, 0);
+    }
+
+    // For range-based looping
+    Iterator end() const
+    {
+        return Iterator(this, NumElements);
+    }
+
+private:
+
+    std::unique_ptr<T[]> Contents;
+    size_t NumElements;		// Number of elements in the array
+    size_t MaxNumElements;	// Amount of space available in the allocated space
+
+    // Allocate space for the given number of items
+    // Truncates the array if the given number is less than the current number of elements
+    void AllocateNewSpace(size_t NumberToAlllocate)
+    {
+        // Truncate the array if it's larger than the new size
+        if (NumElements > NumberToAlllocate)
+        {
+            NumElements = NumberToAlllocate;
+        }
+
+        // Allocate new space and fill it with the old data
+        std::unique_ptr<T[]> NewContents(new T[NumberToAlllocate]);
+        if (Contents != nullptr)
+        {
+            for (size_t i = 0; i < NumElements; ++i)
+            {
+                NewContents[i] = Contents[i];
+            }
+            // Unique ptr cleans up memory
+            Contents = std::move(NewContents);
+        }
+        else
+        {
+            // Unique ptr cleans up memory
+            Contents = std::move(NewContents);
+        }
+        MaxNumElements = NumberToAlllocate;
+    }
+
+    bool IsAllocatedSpaceFull() const
+    {
+        return NumElements == MaxNumElements;
+    }
+
+    // Grow our space by powers of 2
+    void GrowAllocatedSpace()
+    {
+        AllocateNewSpace(MaxNumElements > 0 ? MaxNumElements * 2 : 1);
+    }
 };

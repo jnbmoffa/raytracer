@@ -181,7 +181,7 @@ bool GeometryNode::ColourTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4
 bool GeometryNode::TimeTrace(Ray R, double& closestDist, HitInfo& Hit, Matrix4x4& M, const double& Time)
 {
     Matrix4x4 m_timetrans = M * m_trans;
-    if (Velocity != Vector3D())
+    if (Velocity != Vector3D::ZeroVector)
     {
         m_timetrans.translate(Time * Velocity);
         R.Transform(m_timetrans.invert());
@@ -209,17 +209,25 @@ BoxF GeometryNode::GetBox()
 
 BoxF GetSceneBounds(const std::vector<std::unique_ptr<SceneNode>>& Scene)
 {
-    double inf = 1000000000.f;
-    BoxF Bounds(inf, -inf, -inf, inf, -inf, inf);
-    for (auto& N : Scene)
+    const double posInf = std::numeric_limits<double>::max();
+    const double negInf = std::numeric_limits<double>::min();
+
+    double right = negInf;
+    double left = posInf;
+    double top = negInf;
+    double bottom = posInf;
+    double front = negInf;
+    double back = posInf;
+
+    for (auto& Node : Scene)
     {
-        BoxF B = N->GetBox();
-        Bounds.GetLeft() = std::min(Bounds.GetLeft(), B.GetLeft());
-        Bounds.GetRight() = std::max(Bounds.GetRight(), B.GetRight());
-        Bounds.GetTop() = std::max(Bounds.GetTop(), B.GetTop());
-        Bounds.GetBottom() = std::min(Bounds.GetBottom(), B.GetBottom());
-        Bounds.GetFront() = std::max(Bounds.GetFront(), B.GetFront());
-        Bounds.GetBack() = std::min(Bounds.GetBack(), B.GetBack());
+        const BoxF B = Node->GetBox();
+        right = std::max(right, B.GetRight());
+        left = std::min(left, B.GetLeft());
+        top = std::max(top, B.GetTop());
+        bottom = std::min(bottom, B.GetBottom());
+        front = std::max(front, B.GetFront());
+        back = std::min(back, B.GetBack());
     }
-    return Bounds;
+    return BoxF(right, left, top, bottom, front, back);
 }

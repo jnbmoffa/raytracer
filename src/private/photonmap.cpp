@@ -25,11 +25,13 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 	HitInfo Hit;
 	if (!Scene->PhotonTrace(R, Hit)) return;
 
+	const Vector3D rayDir = R.GetDirection();
+
 	// Refraction enabled?
 	if (Hit.Mat->GetRef())
 	{
 		unsigned int nextDepth = depth+1;
-		double NdotR = R.Direction.dot(Hit.Normal);
+		double NdotR = rayDir.dot(Hit.Normal);
 		double ni, nt;
 		if (NdotR > 0)
 		{
@@ -41,9 +43,9 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 		{
 			// Entering object
 			ni = 1.f; nt = Hit.Mat->GetRefIndex();
-			NdotR = (-R.Direction).dot(Hit.Normal);
+			NdotR = (-rayDir).dot(Hit.Normal);
 		}
-		double sin2t = (ni/nt)*(ni/nt)*(1.f-NdotR*NdotR); // assumes R.Direction and Hit.Normal are normalized
+		double sin2t = (ni/nt)*(ni/nt)*(1.f-NdotR*NdotR); // assumes rayDir and Hit.Normal are normalized
 
 		if (sin2t <= 1.f)
 		{
@@ -70,7 +72,7 @@ void PhotonMap::TracePhoton(const Ray& R, const Colour& Power, unsigned int dept
 	else if (bHasRef)
 	{
 		// Stick if this trace has refracted at least once
-		Storage.emplace_back(new Photon(Hit.Location, Power, R.Direction));
+		Storage.emplace_back(new Photon(Hit.Location, Power, rayDir));
 	}
 }
 

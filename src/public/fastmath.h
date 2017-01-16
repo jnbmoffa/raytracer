@@ -1,6 +1,9 @@
+#pragma once
+
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <cmath>
 
 #define EPSILON 0.0001
 #define EPSILON2 (EPSILON * EPSILON)
@@ -8,10 +11,17 @@
 namespace FastMath
 {
 
+static constexpr double PI = 3.14159265358979323846;
+
 template<typename T>
 inline bool IsNearly(const T& a, const T& comp, T EPS = EPSILON)
 {
     return std::abs(a - comp) < EPS;
+}
+
+inline double DegreesToRadians(double degrees)
+{
+    return degrees * (PI / 180.0);
 }
 
 // ################################################################
@@ -94,63 +104,51 @@ template<> struct MultArrayScalar<double, 2, 2>
 
 // Assign one array's contents to anothers
 template<class Type, size_t N, size_t I>
-struct AssignArrays
+inline void FastArrayCopy(Type(&to)[N], const Type(&from)[N])
 {
     static_assert(N > 0, "Array must have size > 0");
-    static inline void eval(Type(&to)[N], const Type(&from)[N])
-    {
-        to[I] = from[I];
-        AssignArrays < Type, N, I + 1 >::eval(to, from);
-    }
-};
+
+    to[I] = from[I];
+    FastArrayCopy < Type, N, I + 1 > (to, from);
+}
 // Specialize for 4D, 3D and 2D
-template<> struct AssignArrays<double, 16, 16>
-{
-    static inline void eval(double(&)[16], const double(&)[16]) {}
-};
-template<> struct AssignArrays<double, 4, 4>
-{
-    static inline void eval(double(&)[4], const double(&)[4]) {}
-};
-template<> struct AssignArrays<double, 3, 3>
-{
-    static inline void eval(double(&)[3], const double(&)[3]) {}
-};
-template<> struct AssignArrays<double, 2, 2>
-{
-    static inline void eval(double(&)[2], const double(&)[2]) {}
-};
+template<>
+inline void FastArrayCopy<double, 16, 16>(double(&)[16], const double(&)[16]) {}
+
+template<>
+inline void FastArrayCopy<double, 4, 4>(double(&)[4], const double(&)[4]) {}
+
+template<>
+inline void FastArrayCopy<double, 3, 3>(double(&)[3], const double(&)[3]) {}
+
+template<>
+inline void FastArrayCopy<double, 2, 2>(double(&)[2], const double(&)[2]) {}
 
 
 
 // Assign one object with operator[] defined to another
 template<class Type, size_t N, size_t I>
-struct AssignArrayValue
+inline void FastArrayAssign(Type(&array)[N], const Type&& value)
 {
     static_assert(N > 0, "Array must have size > 0");
-    static inline void eval(Type(&array)[N], const Type&& value)
-    {
-        array[I] = std::forward<decltype(value)>(value);
-        AssignArrayValue < Type, N, I + 1 >::eval(array, std::forward<decltype(value)>(value));
-    }
-};
+
+    array[I] = std::forward<decltype(value)>(value);
+    FastArrayAssign < Type, N, I + 1 > (array, std::forward<decltype(value)>(value));
+}
 // Specialize for 4D, 3D and 2D
-template<> struct AssignArrayValue<double, 16, 16>
-{
-    static inline void eval(double(&)[16], const double&&) {}
-};
-template<> struct AssignArrayValue<double, 4, 4>
-{
-    static inline void eval(double(&)[4], const double&&) {}
-};
-template<> struct AssignArrayValue<double, 3, 3>
-{
-    static inline void eval(double(&)[3], const double&&) {}
-};
-template<> struct AssignArrayValue<double, 2, 2>
-{
-    static inline void eval(double(&)[2], const double&&) {}
-};
+template<>
+inline void FastArrayAssign<double, 16, 16>(double(&)[16], const double&&) {}
+
+template<>
+inline void FastArrayAssign<double, 4, 4>(double(&)[4], const double&&) {}
+
+template<>
+inline void FastArrayAssign<double, 3, 3>(double(&)[3], const double&&) {}
+
+template<>
+inline void FastArrayAssign<double, 2, 2>(double(&)[2], const double&&) {}
+
+
 
 // ################################################################
 // ### Points
@@ -164,12 +162,12 @@ public:
 
     Point()
     {
-        AssignArrayValue<value_type, N, 0>::eval(v_, 0);
+        FastArrayAssign<value_type, N, 0>(v_, 0);
     }
 
     Point(const point_type& other)
     {
-        AssignArrays<value_type, N, 0>::eval(v_, other.v_);
+        FastArrayCopy<value_type, N, 0>(v_, other.v_);
     }
 
     // Creates a ctor that takes N elements to initialize v_ with
@@ -196,7 +194,7 @@ public:
 
     point_type& operator=(const point_type& other)
     {
-        AssignArrays<value_type, N, 0>::eval(v_, other.v_);
+        FastArrayCopy<value_type, N, 0>(v_, other.v_);
         return *this;
     }
 
@@ -228,14 +226,16 @@ public:
     using value_type = StorageType;
     using vec_type = Vector<N, value_type>;
 
+    static const Vector ZeroVector;
+
     Vector()
     {
-        AssignArrayValue<value_type, N, 0>::eval(v_, 0);
+        FastArrayAssign<value_type, N, 0>(v_, 0);
     }
 
     Vector(const vec_type& other)
     {
-        AssignArrays<value_type, N, 0>::eval(v_, other.v_);
+        FastArrayCopy<value_type, N, 0>(v_, other.v_);
     }
 
     // Creates a ctor that takes N elements to initialize v_ with
@@ -262,7 +262,7 @@ public:
 
     inline vec_type& operator =(const vec_type& other)
     {
-        AssignArrays<value_type, N, 0>::eval(v_, other.v_);
+        FastArrayCopy<value_type, N, 0>(v_, other.v_);
         return *this;
     }
 
@@ -288,7 +288,7 @@ public:
 
     value_type length() const
     {
-        return sqrt(length2());
+        return std::sqrt(length2());
     }
 
     value_type normalize()
@@ -305,6 +305,9 @@ public:
 private:
     value_type v_[N];
 };
+
+template<size_t N, class StorageType>
+const Vector<N,StorageType> Vector<N,StorageType>::ZeroVector = Vector<N,StorageType>();
 
 // Common Types
 using Vector4D = FastMath::Vector<4>;
@@ -383,6 +386,8 @@ inline std::ostream& operator <<(std::ostream& os, const Vector3D& v)
     return os << "v<" << v[0] << "," << v[1] << "," << v[2] << ">";
 }
 
+
+
 // ################################################################
 // ### Matrix Operations
 // ################################################################
@@ -393,8 +398,7 @@ template<class Mtx, size_t I>
 struct MultMtxRowCol
 {
     enum : size_t { NxtI = I + 1  /* Counter */ };
-    static inline auto eval(const Mtx& a, const Mtx& b,
-                            const size_t& R, const size_t& C)
+    static inline auto eval(const Mtx& a, const Mtx& b, const size_t& R, const size_t& C)
     {
         return a[R][I] * b[I][C] + MultMtxRowCol<Mtx, NxtI>::eval(a, b, R, C);
     }
@@ -419,7 +423,7 @@ struct MultMtxImpl
 };
 
 template<class Mtx, size_t N>
-struct MultMtx
+struct FastMatrixMultiply
 {
     static inline void eval(Mtx& ret, const Mtx& a, const Mtx& b)
     {

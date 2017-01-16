@@ -86,7 +86,7 @@ bool SceneContainer::TimeDepthTrace(const Ray& R, double& dist, const double& Ti
 {
     HitInfo Hit;
     bool bHit = ContainerSpecificTimeTrace(R, Hit, Time);
-    dist = (Hit.Location - R.Start).length2();
+    dist = (Hit.Location - R.GetOrigin()).length2();
     return bHit;
 }
 

@@ -15,40 +15,73 @@ struct HitInfo
     Material* Mat;
 };
 
-struct Ray
+class Ray
 {
+public:
     Ray()
     {}
 
-    Ray(const Point3D& S, const Vector3D& D) :
-        Start(S),
-        Direction(D)
+    Ray(const Point3D& origin, const Vector3D& direction) :
+        m_origin(origin),
+        m_direction(direction)
     {
-        invDirection = Vector3D(1.f / D[0], 1.f / D[1], 1.f / D[2]);
+        m_AABBDivisors = Vector3D(1.0 / direction[0], 1.0 / direction[1], 1.0 / direction[2]);
     }
 
-    inline void Transform(const Matrix4x4& M)
+    void Normalize()
     {
-        Direction = M * Direction;
-        Start = M * Start;
-        invDirection = Vector3D(1.f / Direction[0], 1.f / Direction[1], 1.f / Direction[2]);
+        m_direction.normalize();
+        m_AABBDivisors = Vector3D(1.0 / m_direction[0], 1.0 / m_direction[1], 1.0 / m_direction[2]);
     }
 
-    inline Ray Reflect(const HitInfo& Hit, const double cosi) const
+    void Transform(const Matrix4x4& M)
     {
-        Ray ReflectedRay(Hit.Location, Direction + ((2 * cosi)*Hit.Normal));
-        ReflectedRay.Direction.normalize();
+        SetDirection(M * m_direction);
+        m_origin = M * m_origin;
+    }
+
+    Ray Reflect(const HitInfo& Hit, const double cosi) const
+    {
+        Ray ReflectedRay(Hit.Location, m_direction + ((2 * cosi)*Hit.Normal));
+        ReflectedRay.Normalize();
         return ReflectedRay;
     }
 
-    inline Ray Refract(const double ni, const double nt, const double cosi, const double sin2t, const HitInfo& Hit) const
+    Ray Refract(const double ni, const double nt, const double cosi, const double sin2t, const HitInfo& Hit) const
     {
-        Ray RefractedRay(Hit.Location, (ni / nt)*Direction + (ni / nt * cosi - sqrt(1 - sin2t))*Hit.Normal);
-        RefractedRay.Direction.normalize();
+        Ray RefractedRay(Hit.Location, (ni / nt) * m_direction + (ni / nt * cosi - sqrt(1 - sin2t)) * Hit.Normal);
+        RefractedRay.Normalize();
         return RefractedRay;
     }
 
-    Point3D Start;
-    Vector3D Direction;
-    Vector3D invDirection;  // AABB optimization
+    void SetOrigin(const Point3D& newOrig)
+    {
+        m_origin = newOrig;
+    }
+
+    Point3D GetOrigin() const
+    {
+        return m_origin;
+    }
+
+    void SetDirection(const Vector3D& newDir)
+    {
+        m_direction = newDir;
+        Normalize();
+    }
+
+    Vector3D GetDirection() const
+    {
+        return m_direction;
+    }
+
+    Vector3D GetAABBDiv() const
+    {
+        return m_AABBDivisors;
+    }
+
+private:
+    Point3D m_origin;
+    Vector3D m_direction;
+    Vector3D m_AABBDivisors;  // AABB optimization
 };

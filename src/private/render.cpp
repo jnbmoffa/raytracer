@@ -121,6 +121,7 @@ void RenderThread::Main()
     {
         const Pixel::StorageType x = pixel.GetX();
         const Pixel::StorageType y = pixel.GetY();
+        // std::cout << "\n" << "Rendering pixel (" << x << "," << y << ")" << std::endl;
 
         Colour Total;
         for (int t = 0; t < m_renderData.m_timeSteps; t++)
@@ -129,13 +130,13 @@ void RenderThread::Main()
             Colour DOFTotal;
             for (int d = 0; d < m_renderData.m_normCam->GetDOFRays(); d++)
             {
-                DOFTotal = DOFTotal + TracePixelAntiAliased(x, y, Time);
+                DOFTotal += TracePixelAntiAliased(x, y, Time);
             }
             // Average DOF ray colour
-            Total = Total + DOFTotal / m_renderData.m_normCam->GetDOFRays();
+            Total += DOFTotal / m_renderData.m_normCam->GetDOFRays();
         }
 
-        Total = Total / m_renderData.m_timeSteps;
+        Total /= m_renderData.m_timeSteps;
 
         (*(m_renderData.m_outImage))(x, y, 0) = Total.R();
         (*(m_renderData.m_outImage))(x, y, 1) = Total.G();
@@ -164,12 +165,14 @@ Colour RenderThread::TraceRay(Ray& ray, double powerCoef, unsigned int depth, co
         return Colour::Black;
     }
 
+    const Vector3D rayDir = ray.GetDirection();
+
     // Refraction enabled?
     if (Hit.Mat->GetRef())
     {
         const unsigned int nextDepth = depth + 1;
 
-        double NdotR = ray.Direction.dot(Hit.Normal);
+        double NdotR = rayDir.dot(Hit.Normal);
         double ni, nt;
         if (NdotR > 0)
         {
@@ -183,10 +186,10 @@ Colour RenderThread::TraceRay(Ray& ray, double powerCoef, unsigned int depth, co
             // Entering object
             ni = 1.0;
             nt = Hit.Mat->GetRefIndex();
-            NdotR = (-ray.Direction).dot(Hit.Normal);
+            NdotR = (-rayDir).dot(Hit.Normal);
         }
         const double nint = ni / nt;
-        const double sin2t = nint * nint * (1.0 - NdotR * NdotR);   // assumes ray.Direction and Hit.Normal are normalized
+        const double sin2t = nint * nint * (1.0 - NdotR * NdotR);   // assumes rayDir and Hit.Normal are normalized
 
         if (sin2t <= 1.0)
         {
@@ -200,14 +203,13 @@ Colour RenderThread::TraceRay(Ray& ray, double powerCoef, unsigned int depth, co
 
             // Reflected ray creation
             Ray ReflectedRay = ray.Reflect(Hit, NdotR);
-            Colour reflCol;
+            Colour reflectionColour;
             if (Hit.Mat->GetGloss() > 0.0)
             {
                 // Glossy
-                Ray GlossRay;
-                GlossRay.Start = ReflectedRay.Start;
-                const Vector3D u = cross(ReflectedRay.Direction, Hit.Normal);
-                const Vector3D v = cross(ReflectedRay.Direction, u);
+                const Vector3D reflRayDir = ReflectedRay.GetDirection();
+                const Vector3D u = cross(reflRayDir, Hit.Normal);
+                const Vector3D v = cross(reflRayDir, u);
 
                 // TODO: remove magic number 8
                 Colour TotalGloss;
@@ -219,28 +221,28 @@ Colour RenderThread::TraceRay(Ray& ray, double powerCoef, unsigned int depth, co
                     const double y = sin(theta) * sin(phi);
 
                     // Perturb ray
-                    GlossRay.Direction = x * u + y * v + ReflectedRay.Direction;
-                    GlossRay.Direction.normalize();
-                    TotalGloss = TotalGloss + TraceRay(GlossRay, powerCoef * Reflectance, nextDepth, Time);
+                    Ray GlossRay(ReflectedRay.GetOrigin(), x * u + y * v + reflRayDir);
+                    TotalGloss += TraceRay(GlossRay, powerCoef * Reflectance, nextDepth, Time);
                 }
-                reflCol = TotalGloss * 0.125;
+                reflectionColour = TotalGloss * 0.125;
             }
             else
             {
-                reflCol = TraceRay(ReflectedRay, powerCoef * Reflectance, nextDepth, Time);
+                // Total internal reflection
+                reflectionColour = TraceRay(ReflectedRay, powerCoef * Reflectance, nextDepth, Time);
             }
 
             // Refracted ray creation
             Ray RefractedRay = ray.Refract(ni, nt, NdotR, sin2t, Hit);
-            double refrCoef = powerCoef * (1.0 - Reflectance);
-            Colour refrCol =  refrCoef * TraceColour + TraceRay(RefractedRay, refrCoef, nextDepth, Time);
+            const double refrCoef = powerCoef * (1.0 - Reflectance);
+            const Colour refractionColour = (refrCoef * TraceColour) + TraceRay(RefractedRay, refrCoef, nextDepth, Time);
 
-            return reflCol + refrCol;
+            return reflectionColour + refractionColour;
         }
         else
         {
             // Total Internal Reflection
-            Ray ReflectedRay = ray.Reflect(Hit, (-ray.Direction).dot(Hit.Normal));
+            Ray ReflectedRay = ray.Reflect(Hit, (-rayDir).dot(Hit.Normal));
             return TraceRay(ReflectedRay, powerCoef, nextDepth, Time);
         }
     }
@@ -270,7 +272,7 @@ Colour SuperSampleThread::TracePixelAntiAliased(int x, int y, const double& Time
     Colour SuperTotal;
     for (size_t i = 0; i < numRays; i++)
     {
-        SuperTotal  = SuperTotal + Cols[i];
+        SuperTotal += Cols[i];
     }
     return SuperTotal / static_cast<double>(numRays);
 }
@@ -302,18 +304,17 @@ Colour AdaptiveSampleThread::AdaptiveSuperSample(const int x, const int y, const
         const double HalfY = QuartY * 2;
         const unsigned int newDepth = depth + 1;
 
-        Total = Total +
-                AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth, Time) +
-                AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth, Time) +
-                AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth, Time) +
-                AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);
-                
-        Total = Total * 0.125;
+        Total += AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin, yNormMin + HalfY, newDepth, Time) +
+                 AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin, yNormMin + HalfY, newDepth, Time) +
+                 AdaptiveSuperSample(x, y, xNormMin, xNormMin + HalfX, yNormMin + HalfY, yNormMax, newDepth, Time) +
+                 AdaptiveSuperSample(x, y, xNormMin + HalfX, xNormMax, yNormMin + HalfY, yNormMax, newDepth, Time);
+
+        Total *= 0.125;
     }
     // Same colours or too deep
     else
     {
-        Total = Total * 0.25;
+        Total *= 0.25;
     }
 
     return Total;
